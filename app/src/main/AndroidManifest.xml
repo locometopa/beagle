@@ -32,6 +32,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Reproductor nativo (Media3 / ExoPlayer) -->
+        <activity
+            android:name=".ReproductorActivity"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|screenLayout|uiMode|navigation"
+            android:theme="@style/Tema.Reproductor"
+            android:screenOrientation="sensorLandscape"
+            android:exported="false" />
+
         <!-- Deja al instalador de Android leer la APK descargada -->
         <provider
             android:name="androidx.core.content.FileProvider"

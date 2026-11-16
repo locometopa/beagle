@@ -12,9 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -25,8 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -41,9 +39,9 @@ private val Bien = Color(0xFF2FBF71)
 private val Mal = Color(0xFFE5484D)
 private val Aviso = Color(0xFFE6B422)
 
-/** Ajuste «Servidor de casa»: dirección, búsqueda en la red, estado y lo que hay sincronizado. */
+/** Ajustes: servidor de casa (dirección, búsqueda en la red, estado), motor, versión. */
 @Composable
-fun PantallaServidor(conexion: Conexion) {
+fun PantallaAjustes(conexion: Conexion, ajustes: Ajustes, alCambiarServidor: () -> Unit) {
     val alcance = rememberCoroutineScope()
     var texto by remember { mutableStateOf(conexion.servidor()) }
     var estado by remember { mutableStateOf<Estado>(if (conexion.servidor().isEmpty()) Estado.SinServidor else Estado.Comprobando) }
@@ -62,46 +60,35 @@ fun PantallaServidor(conexion: Conexion) {
         }
     }
 
-    // Al abrir: se enseña ya la copia local y se pregunta al servidor
+    fun conectar() {
+        texto = conexion.ponerServidor(texto)
+        alCambiarServidor()
+        comprobar()
+    }
+
+    // Al abrir se pregunta al servidor (la copia local ya está a la vista)
     LaunchedEffect(Unit) { if (conexion.servidor().isNotEmpty()) comprobar() }
 
     Column(
-        Modifier.fillMaxSize().padding(horizontal = 64.dp, vertical = 48.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 48.dp, vertical = 40.dp),
+        verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
-        Text("Servidor de casa", fontSize = 34.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text("Ajustes", fontSize = 34.sp, color = MaterialTheme.colorScheme.onBackground)
+        Text("Servidor de casa", fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
         Text(
             "Beagle coge los canales, las listas y los favoritos del servidor de casa de HomeTV (puerto 8096).",
             fontSize = 16.sp, color = Apagado,
         )
 
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Box(
-                Modifier.width(380.dp).height(56.dp).background(Panel, RoundedCornerShape(10.dp))
-                    .border(2.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) {
-                BasicTextField(
-                    value = texto,
-                    onValueChange = { texto = it },
-                    singleLine = true,
-                    textStyle = TextStyle(color = MaterialTheme.colorScheme.onBackground, fontSize = 20.sp),
-                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                    modifier = Modifier.fillMaxWidth(),
-                    decorationBox = { campo ->
-                        if (texto.isEmpty()) Text("192.168.1.180", fontSize = 20.sp, color = Apagado)
-                        campo()
-                    },
-                )
-            }
-            Button(onClick = { texto = conexion.ponerServidor(texto); comprobar() }) { Text("Conectar") }
+            CampoTexto(texto, { texto = it }, "Pulsa OK y escribe la IP (192.168.1.180)", Modifier.width(420.dp),
+                teclado = KeyboardType.Uri, alAceptar = { conectar() })
+            Button(onClick = { conectar() }) { Text("Conectar") }
             Button(onClick = {
                 estado = Estado.Buscando
                 alcance.launch {
                     val ip = conexion.buscar()
-                    if (ip != null) { texto = ip; comprobar() }
+                    if (ip != null) { texto = ip; alCambiarServidor(); comprobar() }
                     else estado = Estado.NoResponde("No se ha encontrado el servidor en esta red", copia)
                 }
             }) { Text("Buscar en la red") }
@@ -109,7 +96,8 @@ fun PantallaServidor(conexion: Conexion) {
 
         FilaEstado(estado)
         FilaMotor(conexion)
-        copia?.let { Datos(it) }
+        copia?.let { ResumenDatos(it) }
+        Text("Beagle ${ajustes.version()}", fontSize = 14.sp, color = Apagado)
     }
 }
 
@@ -138,7 +126,7 @@ private fun FilaEstado(estado: Estado) {
 }
 
 @Composable
-private fun Datos(copia: Copia) {
+private fun ResumenDatos(copia: Copia) {
     val r = copia.resumen
     Column(Modifier.background(Panel, RoundedCornerShape(12.dp)).padding(24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text("Lo que hay en la tele", fontSize = 18.sp, color = Apagado)

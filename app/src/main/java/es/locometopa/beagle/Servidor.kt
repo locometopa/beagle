@@ -45,6 +45,7 @@ object Servidor {
     const val PUERTO_CASA = 8096
 
     fun casa(equipo: String): String = "http://$equipo:$PUERTO_CASA"
+    fun motor(equipo: String): String = Motor.urlCasa(equipo)
 
     /** Fuera de casa el servidor se alcanza por Tailscale (100.x.x.x o nombre .ts.net). */
     fun fueraDeCasa(equipo: String): Boolean = equipo.startsWith("100.") || equipo.endsWith(".ts.net")
@@ -167,6 +168,15 @@ object Servidor {
         } finally {
             c.disconnect()
         }
+    }
+
+    /** Marca o quita de favoritos un canal (todos sus enlaces) en el servidor: lo ven todas las teles. */
+    fun favorito(equipo: String, canal: Canal, poner: Boolean) {
+        val ids = org.json.JSONArray()
+        for (e in canal.enlaces) ids.put(e.id.ifEmpty { e.url })
+        val cuerpo = JSONObject().put("ids", ids).put("favorito", poner).toString()
+        val r = pedirJson(casa(equipo) + "/api/favorito", 10000, "POST", cuerpo)
+        if (r.optInt("cambiados", 0) == 0) throw IOException("El servidor no ha encontrado ese canal")
     }
 
     // --- /bloqueo ---

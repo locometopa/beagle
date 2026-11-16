@@ -14,6 +14,21 @@ class Ajustes(private val contexto: Context) {
         get() = sp.getString("servidor", "") ?: ""
         set(v) = sp.edit().putString("servidor", v).apply()
 
+    /** Cómo se pide el canal al motor: «ts» (continuo) o «hls» (troceado). */
+    var formato: String
+        get() = if (sp.getString("formato", "ts") == "hls") "hls" else "ts"
+        set(v) = sp.edit().putString("formato", v).apply()
+
+    /** Enlaces que esta tele no lee en TS: se abren directamente en HLS. */
+    var soloHls: Set<String>
+        get() = HashSet(sp.getStringSet("soloHls", emptySet()) ?: emptySet())
+        set(v) = sp.edit().putStringSet("soloHls", HashSet(v)).apply()
+
+    /** Enlaces cuyo sonido esta tele no reproduce: se piden al servidor con el sonido convertido. */
+    var soloAac: Set<String>
+        get() = HashSet(sp.getStringSet("soloAac", emptySet()) ?: emptySet())
+        set(v) = sp.edit().putStringSet("soloAac", HashSet(v)).apply()
+
     /** Si la tele guarda solo los canales de listas encendidas (HomeTV: `sincroLigero`). */
     var sincroLigero: Boolean
         get() = sp.getBoolean("sincroLigero", true)

@@ -28,7 +28,7 @@ class Copia(val rev: Long, val datos: JSONObject, val ligero: Boolean) {
  * Copia en la tele de lo compartido: la app abre al instante con ella y sigue funcionando si el servidor tarda
  * o no está. Se guarda el JSON entero (también los campos que Beagle aún no usa) para no perder nada al devolverlo.
  */
-class CopiaLocal(contexto: Context) {
+class CopiaLocal(private val contexto: Context) {
     private val archivo = File(contexto.filesDir, "sincro.json")
 
     fun leer(): Copia? = try {
@@ -44,5 +44,14 @@ class CopiaLocal(contexto: Context) {
         val tmp = File(archivo.parentFile, "sincro.json.tmp")
         tmp.writeText(JSONObject().put("rev", copia.rev).put("ligero", copia.ligero).put("datos", copia.datos).toString(), Charsets.UTF_8)
         if (!tmp.renameTo(archivo)) { archivo.delete(); tmp.renameTo(archivo) }
+    }
+
+    private val simple = File(contexto.filesDir, "simple.json")
+
+    /** Última lista de canales agrupados (/api/simple), tal como la dio el servidor. Null si no hay. */
+    fun leerSimple(): String? = try { if (simple.exists()) simple.readText(Charsets.UTF_8) else null } catch (e: Exception) { null }
+
+    fun guardarSimple(texto: String) {
+        try { simple.writeText(texto, Charsets.UTF_8) } catch (e: Exception) { /* sin sitio: se sigue sin guardar */ }
     }
 }

@@ -87,6 +87,24 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         r
     }
 
+    /** Canales ya agrupados que guardó la última vez la tele, para abrir al instante. Null si no hay. */
+    fun catalogoLocal(): Catalogo? = try { local.leerSimple()?.let { Modelo.leer(it) } } catch (e: Exception) { null }
+
+    /** Pide los canales agrupados al servidor y los guarda. Lanza si el servidor no responde. */
+    suspend fun cargarCatalogo(): Catalogo = withContext(Dispatchers.IO) {
+        val equipo = ajustes.servidor
+        if (equipo.isEmpty()) throw java.io.IOException("Falta la dirección del servidor de casa")
+        val texto = Servidor.pedir(Servidor.casa(equipo) + "/api/simple", 30000)
+        val c = Modelo.leer(texto)
+        local.guardarSimple(texto)
+        c
+    }
+
+    /** Marca o quita un favorito en el servidor. */
+    suspend fun favorito(canal: Canal, poner: Boolean) = withContext(Dispatchers.IO) {
+        Servidor.favorito(ajustes.servidor, canal, poner)
+    }
+
     /** ¿El motor está en la propia tele? */
     fun motorEnTele(): Boolean = ajustes.motorEnTele
 
