@@ -1,11 +1,13 @@
 package es.locometopa.beagle
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -16,6 +18,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -84,19 +88,34 @@ fun AvisoActualizacion(ajustes: Ajustes, modifier: Modifier = Modifier) {
     }
     if (version == null || version == ocultado) return
 
-    Box(modifier.fillMaxWidth().padding(32.dp).background(Color(0xFF2D2D2D), RoundedCornerShape(14.dp)).padding(20.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
-            val texto = when (f) {
-                is Fase.Hay -> "Hay una versión nueva de Beagle: $version (tienes la ${ajustes.version()})"
-                is Fase.Descargando -> "Descargando la versión $version" + if (f.porcentaje >= 0) "… ${f.porcentaje} %" else "…"
-                is Fase.Permiso -> "Activa «Instalar apps desconocidas» para Beagle en los ajustes de la tele y vuelve a pulsar Actualizar"
-                is Fase.Fallo -> "No se ha podido actualizar: ${f.motivo}"
-                Fase.Nada -> ""
-            }
-            Text(texto, fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
+    val pedirFoco = remember { FocusRequester() }
+    // Al salir el aviso (o cambiar de paso) el foco va solo al primer botón, para poder pulsarlo con el mando
+    LaunchedEffect(f::class) {
+        if (f !is Fase.Descargando) { try { pedirFoco.requestFocus() } catch (e: Exception) { /* aún no está colocado */ } }
+    }
+    // Atrás = «Más tarde» (no mientras descarga)
+    BackHandler(enabled = f !is Fase.Descargando) { ocultado = version }
+
+    val texto = when (f) {
+        is Fase.Hay -> "Tienes la ${ajustes.version()} y ya está la $version."
+        is Fase.Descargando -> "Descargando la versión $version" + if (f.porcentaje >= 0) "… ${f.porcentaje} %" else "…"
+        is Fase.Permiso -> "Activa «Instalar apps desconocidas» para Beagle en los ajustes de la tele y vuelve a pulsar Actualizar ahora."
+        is Fase.Fallo -> "No se ha podido actualizar: ${f.motivo}"
+        Fase.Nada -> ""
+    }
+    // Ventana centrada sobre un fondo oscuro, como un diálogo
+    Box(modifier.background(Color(0xB3000000)), contentAlignment = Alignment.Center) {
+        Column(
+            Modifier.width(640.dp).background(Color(0xFF2D2D2D), RoundedCornerShape(16.dp)).padding(32.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text("Hay una versión nueva de Beagle", fontSize = 26.sp, color = MaterialTheme.colorScheme.onBackground)
+            Text(texto, fontSize = 18.sp, color = Color(0xFFA0A0A0))
             if (f !is Fase.Descargando) {
-                Button(onClick = { actualizar(version) }) { Text("Actualizar ahora") }
-                Button(onClick = { ocultado = version }) { Text("Más tarde") }
+                Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Button(onClick = { actualizar(version) }, modifier = Modifier.focusRequester(pedirFoco)) { Text("Actualizar ahora") }
+                    Button(onClick = { ocultado = version }) { Text("Más tarde") }
+                }
             }
         }
     }

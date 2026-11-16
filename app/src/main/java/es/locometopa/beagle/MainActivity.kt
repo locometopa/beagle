@@ -101,6 +101,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
 
         val datos = Datos(catalogo, cargando, error, servidorVacio, cambios, { recargar() }, { favorito(it) })
 
+        Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize().background(Colores.Fondo)) {
             // Menú lateral
             Column(Modifier.width(240.dp).fillMaxHeight().background(Colores.Panel).padding(16.dp)) {
@@ -120,8 +121,10 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                     Seccion.Buscar -> PantallaBuscar(datos)
                     Seccion.Ajustes -> PantallaAjustes(conexion, ajustes) { recargar() }
                 }
-                AvisoActualizacion(ajustes, Modifier.align(Alignment.BottomCenter).fillMaxWidth())
             }
+        }
+            // El aviso de versión nueva va por encima de todo y coge el foco
+            AvisoActualizacion(ajustes, Modifier.fillMaxSize())
         }
     }
 }
