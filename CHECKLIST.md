@@ -8,6 +8,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - **Reglas**: HomeTV y su servidor de casa no se tocan desde este repo. Si hiciera falta cambiar el servidor
   (`servidor-casa/hometv-servidor.js`), el cambio va en el repo `hometv`. Beagle es un cliente más del mismo servidor.
 - Hecho = funciona en la Google TV con el mando, no solo compila.
+- `[x]` hecho y visto en la tele · `[~]` escrito y compilado, falta probarlo en la tele · `[ ]` sin hacer.
 
 ## 0. Esqueleto
 
@@ -20,14 +21,14 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 1. Base: servidor de casa y datos
 
-- [ ] Ajuste «Servidor de casa» (IP o nombre) y aviso si no responde (`store.js: servidorCasa`)
-- [ ] Buscar el servidor solo en la red local (puerto 8096, `/salud`)
-- [ ] Leer canales, listas y ajustes compartidos: `GET /sincro` (con `desde` y `ligero=1`)
-- [ ] Guardar cambios en el servidor: `PUT /sincro` (con `base`, y recargar si responde 409)
+- [~] Ajuste «Servidor de casa» (IP o nombre) y aviso si no responde (`store.js: servidorCasa`)
+- [~] Buscar el servidor solo en la red local (puerto 8096, `/salud`)
+- [~] Leer canales, listas y ajustes compartidos: `GET /sincro` (con `desde` y `ligero=1`)
+- [~] Guardar cambios en el servidor: `PUT /sincro` (con `base`, y recargar si responde 409)
 - [ ] Modelo de datos: canales, fuentes (listas), ajustes, vistos, recordatorios (`store.js`)
-- [ ] Copia local para abrir al instante y funcionar si el servidor tarda
-- [ ] Sincronización ligera: no guardar en la tele los canales de listas apagadas (`sincroLigero`)
-- [ ] Darse de alta como tele en el servidor (sale en el panel, en «Teles») y decir qué se está viendo
+- [~] Copia local para abrir al instante y funcionar si el servidor tarda
+- [~] Sincronización ligera: no guardar en la tele los canales de listas apagadas (`sincroLigero`)
+- [~] Darse de alta como tele en el servidor (sale en el panel, en «Teles») y decir qué se está viendo
 - [ ] Bloqueo de la tele desde el servidor (`GET /bloqueo`): cierra el reproductor si se bloquea
 - [ ] Copias de seguridad en el servidor (`PUT /copia`, `GET /copias`) y restaurar
 - [ ] Uso fuera de casa por Tailscale (dirección `100.x` o `.ts.net`)

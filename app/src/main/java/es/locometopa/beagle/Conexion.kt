@@ -1,0 +1,96 @@
+package es.locometopa.beagle
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/** En qué punto está Beagle respecto al servidor de casa. */
+sealed interface Estado {
+    /** Aún no se ha puesto la dirección del servidor. */
+    data object SinServidor : Estado
+    /** Recorriendo la red local para encontrarlo. */
+    data object Buscando : Estado
+    /** Preguntando al servidor. */
+    data object Comprobando : Estado
+    /** El servidor responde. [copia] son los datos compartidos (de ahora, o la copia local si falló la lectura). */
+    class Conectado(val salud: Salud, val copia: Copia?, val aviso: String?) : Estado
+    /** No responde: se sigue con la copia local, si la hay. */
+    class NoResponde(val motivo: String, val copia: Copia?) : Estado
+}
+
+/**
+ * Une el servidor, los ajustes y la copia local: lo que necesita la pantalla en cuatro pasos
+ * (poner la dirección, buscarla en la red, conectar, sincronizar).
+ */
+class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
+
+    /** La copia que hay en la tele, para abrir al instante antes de hablar con nadie. */
+    fun copiaLocal(): Copia? = local.leer()
+
+    /** Dirección ya guardada, o vacía. */
+    fun servidor(): String = ajustes.servidor
+
+    /** Guarda la dirección que se ha escrito (admite una URL entera). Devuelve la dirección limpia. */
+    fun ponerServidor(texto: String): String {
+        val limpio = Servidor.normalizar(texto)
+        ajustes.servidor = limpio
+        return limpio
+    }
+
+    /** Busca el servidor en la red local y, si lo encuentra, lo recuerda. */
+    suspend fun buscar(): String? = withContext(Dispatchers.IO) {
+        val ip = Servidor.buscarEnRed()
+        if (ip != null) ajustes.servidor = ip
+        ip
+    }
+
+    /**
+     * Comprueba el servidor y trae lo compartido. Si ya hay copia local, solo se descarga lo nuevo (`desde`).
+     * Nunca lanza: si algo falla, el estado dice qué y se conserva la copia que hubiera.
+     */
+    suspend fun sincronizar(): Estado = withContext(Dispatchers.IO) {
+        val equipo = ajustes.servidor
+        val previa = local.leer()
+        if (equipo.isEmpty()) return@withContext Estado.SinServidor
+        val salud = try {
+            Servidor.salud(equipo)
+        } catch (e: Exception) {
+            return@withContext Estado.NoResponde(motivoLegible(e, equipo), previa)
+        }
+        try {
+            val s = Servidor.leerSincro(equipo, ajustes.identidad(), previa?.rev ?: 0, ajustes.sincroLigero)
+            when {
+                s.sinCambios && previa != null -> Estado.Conectado(salud, previa, null)
+                s.datos != null -> {
+                    val nueva = Copia(s.rev, s.datos, s.ligero)
+                    local.guardar(nueva)
+                    Estado.Conectado(salud, nueva, null)
+                }
+                // El servidor aún no tiene canales compartidos (nadie ha sincronizado desde ninguna tele)
+                else -> Estado.Conectado(salud, previa, "El servidor todavía no tiene canales compartidos")
+            }
+        } catch (e: Exception) {
+            Estado.Conectado(salud, previa, "No se han podido leer los canales: ${motivoLegible(e, equipo)}")
+        }
+    }
+
+    /**
+     * Sube los datos cambiados. Si otra tele guardó antes, se carga lo suyo en la copia local y se devuelve
+     * [Guardado.Conflicto] para que quien llama rehaga el cambio sobre lo nuevo.
+     */
+    suspend fun guardar(copia: Copia): Guardado = withContext(Dispatchers.IO) {
+        val equipo = ajustes.servidor
+        val r = Servidor.guardarSincro(equipo, ajustes.identidad(), copia.rev, copia.datos, copia.ligero)
+        when (r) {
+            is Guardado.Hecho -> local.guardar(Copia(r.rev, copia.datos, copia.ligero))
+            is Guardado.Conflicto -> r.actual.datos?.let { local.guardar(Copia(r.actual.rev, it, r.actual.ligero)) }
+        }
+        r
+    }
+
+    private fun motivoLegible(e: Exception, equipo: String): String = when (e) {
+        is java.net.UnknownHostException -> "No se encuentra «$equipo» en la red"
+        is java.net.SocketTimeoutException, is java.net.ConnectException ->
+            if (Servidor.fueraDeCasa(equipo)) "No responde por Tailscale: ¿está conectado?" else "No responde: ¿está encendido el servidor?"
+        else -> e.message ?: "Error desconocido"
+    }
+}

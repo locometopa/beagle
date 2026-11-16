@@ -1,0 +1,227 @@
+package es.locometopa.beagle
+
+import org.json.JSONObject
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.Inet4Address
+import java.net.InetSocketAddress
+import java.net.NetworkInterface
+import java.net.Socket
+import java.net.URL
+import java.net.URLEncoder
+import java.util.concurrent.Callable
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+
+/** Quién es esta tele ante el servidor: así sale en el panel, en «Teles». */
+class Identidad(val equipo: String, val nombre: String, val version: String) {
+    /** Parámetros que el servidor lee en /sincro y /bloqueo (`tele`, `equipo`, `nombre`, `v`). */
+    fun parametros(): String {
+        fun e(t: String) = URLEncoder.encode(t, "UTF-8")
+        return "tele=${e("beagle-$equipo")}&equipo=${e("beagle-$equipo")}&nombre=${e(nombre)}&v=${e(version)}"
+    }
+}
+
+/** Respuesta de /salud. */
+class Salud(val motor: String?, val vpn: Boolean, val apk: String?, val copias: Int, val ultimaCopia: String?)
+
+/** Respuesta de /sincro: los datos compartidos entre las teles, tal cual los guarda el servidor. */
+class Sincro(val rev: Long, val datos: JSONObject?, val ligero: Boolean, val sinCambios: Boolean)
+
+/** Lo que pasa al guardar: o se acepta, o otra tele guardó antes y hay que cargar lo suyo. */
+sealed interface Guardado {
+    class Hecho(val rev: Long, val recargar: Boolean) : Guardado
+    class Conflicto(val actual: Sincro) : Guardado
+}
+
+/** Respuesta de /bloqueo. */
+class Bloqueo(val bloqueada: Boolean, val mensaje: String, val actualizar: Boolean)
+
+/**
+ * Lo que Beagle habla con el servidor de casa de HomeTV (puerto 8096).
+ * Todo es bloqueante: se llama siempre desde un hilo que no sea el de la pantalla.
+ */
+object Servidor {
+    const val PUERTO_CASA = 8096
+
+    fun casa(equipo: String): String = "http://$equipo:$PUERTO_CASA"
+
+    /** Fuera de casa el servidor se alcanza por Tailscale (100.x.x.x o nombre .ts.net). */
+    fun fueraDeCasa(equipo: String): Boolean = equipo.startsWith("100.") || equipo.endsWith(".ts.net")
+
+    /**
+     * Deja solo el nombre o la IP del servidor: se admite escribir «192.168.1.180», «servidor.local»
+     * o pegar la dirección entera («http://192.168.1.180:8096/tv»).
+     */
+    fun normalizar(texto: String): String {
+        var t = texto.trim().lowercase()
+        t = t.replace(Regex("^[a-z][a-z0-9+.-]*://"), "")
+        t = t.substringBefore('/').substringBefore('?').substringBefore('#')
+        t = t.substringAfter('@')
+        t = t.replace(Regex(":\\d*$"), "")
+        return t.filter { it.isLetterOrDigit() || it == '.' || it == '-' }
+    }
+
+    /** Pide una dirección y devuelve el texto. Con un código de error HTTP lanza IOException con el motivo. */
+    fun pedir(url: String, espera: Int, metodo: String = "GET", cuerpo: String? = null, tolerante: Boolean = false): String {
+        val c = URL(url).openConnection() as HttpURLConnection
+        try {
+            c.connectTimeout = minOf(espera, 10000)
+            c.readTimeout = espera
+            c.setRequestProperty("User-Agent", "Beagle")
+            c.requestMethod = metodo
+            if (cuerpo != null) {
+                c.doOutput = true
+                c.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+                c.outputStream.use { it.write(cuerpo.toByteArray(Charsets.UTF_8)) }
+            }
+            val codigo = c.responseCode
+            val flujo = if (codigo < 400) c.inputStream else c.errorStream
+            val texto = flujo?.use { it.readBytes().toString(Charsets.UTF_8) } ?: ""
+            if (codigo >= 400 && !tolerante) {
+                val motivo = try { JSONObject(texto).optString("error", "") } catch (e: Exception) { "" }
+                throw IOException(motivo.ifEmpty { "El servidor ha respondido con el error $codigo" })
+            }
+            return texto
+        } finally {
+            c.disconnect()
+        }
+    }
+
+    /** Como [pedir], pero ya leído como JSON. */
+    fun pedirJson(url: String, espera: Int, metodo: String = "GET", cuerpo: String? = null, tolerante: Boolean = false): JSONObject =
+        JSONObject(pedir(url, espera, metodo, cuerpo, tolerante))
+
+    // --- /salud ---
+
+    fun salud(equipo: String, espera: Int = 5000): Salud {
+        val j = pedirJson(casa(equipo) + "/salud", espera)
+        if (j.optString("servicio", "") != "hometv") throw IOException("Ahí no hay un servidor de casa de HomeTV")
+        val v = if (j.isNull("vpn")) null else j.opt("vpn")
+        val vpnActiva = when (v) {
+            is JSONObject -> v.optBoolean("activa", v.optBoolean("ok", true))
+            is Boolean -> v
+            else -> false
+        }
+        return Salud(
+            motor = if (j.isNull("motor")) null else j.optString("motor", "").ifEmpty { null },
+            vpn = vpnActiva,
+            apk = if (j.isNull("apk")) null else j.optString("apk", "").ifEmpty { null },
+            copias = j.optInt("copias", 0),
+            ultimaCopia = if (j.isNull("ultimaCopia")) null else j.optString("ultimaCopia", "").ifEmpty { null },
+        )
+    }
+
+    /** ¿Hay en esa dirección un servidor de casa de HomeTV? */
+    fun esServidor(equipo: String, espera: Int = 4000): Boolean = try {
+        pedirJson(casa(equipo) + "/salud", espera).optString("servicio", "") == "hometv"
+    } catch (e: Exception) {
+        false
+    }
+
+    // --- /sincro ---
+
+    /**
+     * Lee lo compartido. Con [desde] (la `rev` que ya se tiene) el servidor responde «sinCambios» si no hay nada nuevo.
+     * Con [ligero] no manda los canales de listas apagadas.
+     */
+    fun leerSincro(equipo: String, id: Identidad, desde: Long = 0, ligero: Boolean = true): Sincro {
+        var url = casa(equipo) + "/sincro?" + id.parametros()
+        if (desde > 0) url += "&desde=$desde"
+        if (ligero) url += "&ligero=1"
+        return leerRespuestaSincro(pedirJson(url, 60000))
+    }
+
+    internal fun leerRespuestaSincro(j: JSONObject): Sincro = Sincro(
+        rev = j.optLong("rev", 0),
+        datos = j.optJSONObject("datos"),
+        ligero = j.optBoolean("ligero", false),
+        sinCambios = j.optBoolean("sinCambios", false),
+    )
+
+    /**
+     * Guarda los datos. [base] es la `rev` de lo último que esta tele vio: si otra guardó después, el servidor
+     * responde 409 con lo nuevo y aquí sale [Guardado.Conflicto] para cargarlo antes de volver a intentarlo.
+     * [parcial] es para cuando los datos son los ligeros (sin canales de listas apagadas).
+     */
+    fun guardarSincro(equipo: String, id: Identidad, base: Long, datos: JSONObject, parcial: Boolean): Guardado {
+        val cuerpo = JSONObject().put("base", base).put("datos", datos).put("parcial", parcial).put("de", id.nombre).toString()
+        val c = URL(casa(equipo) + "/sincro?" + id.parametros()).openConnection() as HttpURLConnection
+        try {
+            c.connectTimeout = 10000
+            c.readTimeout = 60000
+            c.requestMethod = "PUT"
+            c.doOutput = true
+            c.setRequestProperty("User-Agent", "Beagle")
+            c.setRequestProperty("Content-Type", "application/json; charset=utf-8")
+            c.outputStream.use { it.write(cuerpo.toByteArray(Charsets.UTF_8)) }
+            val codigo = c.responseCode
+            val texto = (if (codigo < 400) c.inputStream else c.errorStream)?.use { it.readBytes().toString(Charsets.UTF_8) } ?: ""
+            if (codigo == 409) return Guardado.Conflicto(leerRespuestaSincro(JSONObject(texto)))
+            if (codigo >= 400) {
+                val motivo = try { JSONObject(texto).optString("error", "") } catch (e: Exception) { "" }
+                throw IOException(motivo.ifEmpty { "El servidor ha respondido con el error $codigo" })
+            }
+            val j = JSONObject(texto)
+            return Guardado.Hecho(j.optLong("rev", 0), j.optBoolean("recargar", false))
+        } finally {
+            c.disconnect()
+        }
+    }
+
+    // --- /bloqueo ---
+
+    /** Lo que se pregunta cada poco: si el panel ha bloqueado esta tele o le pide actualizar. */
+    fun bloqueo(equipo: String, id: Identidad): Bloqueo {
+        val j = pedirJson(casa(equipo) + "/bloqueo?" + id.parametros(), 5000)
+        return Bloqueo(j.optBoolean("bloqueada", false), if (j.isNull("mensaje")) "" else j.optString("mensaje", ""), j.optBoolean("actualizar", false))
+    }
+
+    // --- Buscar el servidor en la red local ---
+
+    /** Primeros tres números de las redes locales de este aparato («192.168.1.»). */
+    private fun redes(): List<String> {
+        val out = LinkedHashSet<String>()
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces() ?: return emptyList()
+            for (ni in interfaces) {
+                if (!ni.isUp || ni.isLoopback) continue
+                for (a in ni.inetAddresses) {
+                    if (a is Inet4Address && a.isSiteLocalAddress) {
+                        val ip = a.hostAddress ?: continue
+                        out.add(ip.substringBeforeLast('.') + ".")
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // sin permiso o sin red: no se puede buscar
+        }
+        return out.toList()
+    }
+
+    /** Recorre la red local buscando el servidor de casa. Devuelve su IP, o null si no aparece. Tarda unos segundos. */
+    fun buscarEnRed(prefijos: List<String> = redes()): String? {
+        if (prefijos.isEmpty()) return null
+        val hilos = Executors.newFixedThreadPool(48)
+        try {
+            val tareas = ArrayList<Callable<String>>()
+            for (p in prefijos) {
+                for (n in 1..254) {
+                    val ip = p + n
+                    tareas.add(Callable {
+                        Socket().use { it.connect(InetSocketAddress(ip, PUERTO_CASA), 700) }
+                        if (!esServidor(ip, 3000)) throw IOException("no es el servidor")
+                        ip
+                    })
+                }
+            }
+            return try {
+                hilos.invokeAny(tareas, 30, TimeUnit.SECONDS)
+            } catch (e: Exception) {
+                null
+            }
+        } finally {
+            hilos.shutdownNow()
+        }
+    }
+}
