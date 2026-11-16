@@ -1,0 +1,74 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+// La versión sale de version.txt: 0.1.0 -> versionName "0.1.0", versionCode 100
+def versionApp = rootProject.file('version.txt').text.trim()
+def (vMayor, vMenor, vParche) = versionApp.tokenize('.').collect { it.replaceAll(/\D.*/, '') as int }
+
+// Firma propia de Beagle (para que cada APK nueva se instale encima de la anterior). El archivo NO está en el
+// repositorio: en GitHub lo ponen los secretos KEYSTORE_B64 y KEYSTORE_PASSWORD; en el PC, app/beagle.keystore
+// y la variable de entorno KEYSTORE_PASSWORD. Sin ellos se firma con la clave de pruebas.
+def almacen = file('beagle.keystore')
+def claveFirma = System.getenv('KEYSTORE_PASSWORD') ?: ''
+def hayFirma = almacen.exists() && !claveFirma.isEmpty()
+
+android {
+    namespace = 'es.locometopa.beagle'
+    compileSdk = 35
+
+    defaultConfig {
+        applicationId 'es.locometopa.beagle'
+        minSdk 24
+        targetSdk 34
+        versionCode vMayor * 10000 + vMenor * 100 + vParche
+        versionName versionApp
+    }
+
+    signingConfigs {
+        if (hayFirma) {
+            beagle {
+                storeFile almacen
+                storePassword claveFirma
+                keyAlias 'beagle'
+                keyPassword claveFirma
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig hayFirma ? signingConfigs.beagle : signingConfigs.debug
+            minifyEnabled false
+        }
+        debug {
+            if (hayFirma) signingConfig signingConfigs.beagle
+        }
+    }
+
+    buildFeatures {
+        compose true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+    lint {
+        checkReleaseBuilds false
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation platform('androidx.compose:compose-bom:2024.12.01')
+    implementation 'androidx.activity:activity-compose:1.9.3'
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.foundation:foundation'
+    // Compose for TV
+    implementation 'androidx.tv:tv-material:1.0.0'
+}

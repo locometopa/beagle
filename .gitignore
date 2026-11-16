@@ -1,0 +1,13 @@
+.gradle/
+build/
+app/build/
+local.properties
+.idea/
+*.iml
+.kotlin/
+# La firma nunca va al repositorio (es público): secretos KEYSTORE_B64 y KEYSTORE_PASSWORD
+*.keystore
+*.jks
+firma/
+salida/
+compilacion.log
