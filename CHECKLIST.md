@@ -29,7 +29,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Copia local para abrir al instante y funcionar si el servidor tarda
 - [~] Sincronización ligera: no guardar en la tele los canales de listas apagadas (`sincroLigero`)
 - [~] Darse de alta como tele en el servidor (sale en el panel, en «Teles») y decir qué se está viendo
-- [ ] Bloqueo de la tele desde el servidor (`GET /bloqueo`): cierra el reproductor si se bloquea
+- [~] Bloqueo de la tele desde el servidor (`GET /bloqueo`): cierra el reproductor si se bloquea
 - [ ] Copias de seguridad en el servidor (`PUT /copia`, `GET /copias`) y restaurar
 - [ ] Uso fuera de casa por Tailscale (dirección `100.x` o `.ts.net`)
 
@@ -154,14 +154,14 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 13. Carpetas y grabaciones del servidor
 
-- [ ] Ver las carpetas de vídeo del servidor y carpetas de red (`/api/carpetas`, `/carpetas/…`)
-- [ ] Reproducir sus vídeos en el reproductor nativo
-- [ ] Ver y reproducir las grabaciones (`/api/grabaciones`, `/grabaciones/…`)
+- [~] Ver las carpetas de vídeo del servidor y carpetas de red (`/api/carpetas`, `/carpetas/…`)
+- [~] Reproducir sus vídeos en el reproductor nativo
+- [~] Ver y reproducir las grabaciones (`/api/grabaciones`, `/grabaciones/…`)
 
 ## 14. Red y VPN
 
-- [ ] Indicador de la VPN del servidor (WARP / Proton) en el menú y en Ajustes → Red (`/salud`)
-- [ ] Cambiar la VPN del servidor desde la tele (`POST /api/vpn`)
+- [~] Indicador de la VPN del servidor (WARP / Proton) en el menú y en Ajustes → Red (`/salud`)
+- [~] Cambiar la VPN del servidor desde la tele (`POST /api/vpn`)
 - [ ] Indicador de Cloudflare WARP en la tele y acceso a la app 1.1.1.1
 
 ## 15. Ajustes

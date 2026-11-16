@@ -96,6 +96,7 @@ fun PantallaAjustes(conexion: Conexion, ajustes: Ajustes, alCambiarServidor: () 
 
         FilaEstado(estado)
         FilaMotor(conexion)
+        FilaVpn(estado, conexion) { comprobar() }
         FilaReproductor(ajustes)
         copia?.let { ResumenDatos(it) }
         Text("Beagle ${ajustes.version()}", fontSize = 14.sp, color = Apagado)
@@ -180,5 +181,40 @@ private fun FilaReproductor(ajustes: Ajustes) {
         val apps = listOf(Reproductor.Vlc, Reproductor.AcePlayer, Reproductor.AceServe)
             .joinToString(" · ") { it.nombre + if (Externos.instalada(contexto, it) != null) " ✓" else " ✗" }
         Text(apps, fontSize = 15.sp, color = Apagado)
+    }
+}
+
+/** VPN del servidor (WARP o Proton): cómo está y cambiarla desde la tele. */
+@Composable
+private fun FilaVpn(estado: Estado, conexion: Conexion, recomprobar: () -> Unit) {
+    val e = estado as? Estado.Conectado ?: return
+    val alcance = rememberCoroutineScope()
+    var mensaje by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+
+    fun cambiar(usar: String) {
+        mensaje = true to "Cambiando la VPN del servidor… tarda unos segundos"
+        alcance.launch {
+            try {
+                conexion.cambiarVpn(usar)
+                kotlinx.coroutines.delay(8000)
+                recomprobar()
+                mensaje = null
+            } catch (x: Exception) {
+                mensaje = false to (x.message ?: "No se ha podido cambiar la VPN")
+            }
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Text("VPN del servidor", fontSize = 18.sp, color = Apagado)
+            Text(if (e.salud.vpn) "activa" + (e.salud.vpnDetalle?.let { " · $it" } ?: "") else "apagada", fontSize = 16.sp, color = if (e.salud.vpn) Bien else Apagado)
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            Button(onClick = { cambiar("warp") }) { Text("WARP") }
+            Button(onClick = { cambiar("proton") }) { Text("Proton") }
+            Button(onClick = { cambiar("ninguna") }) { Text("Sin VPN") }
+        }
+        mensaje?.let { (bien, texto) -> Text(texto, fontSize = 15.sp, color = if (bien) Aviso else Mal) }
     }
 }

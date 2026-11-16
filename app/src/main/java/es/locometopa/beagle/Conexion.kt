@@ -105,6 +105,16 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         Servidor.favorito(ajustes.servidor, canal, poner)
     }
 
+    suspend fun carpetas(): List<Carpeta> = withContext(Dispatchers.IO) { Servidor.carpetas(servidorOError()) }
+    suspend fun listarCarpeta(id: String, sub: String): Listado = withContext(Dispatchers.IO) { Servidor.listarCarpeta(servidorOError(), id, sub) }
+    suspend fun cambiarVpn(usar: String) = withContext(Dispatchers.IO) { Servidor.cambiarVpn(servidorOError(), usar) }
+
+    /** Lo que dice el panel de esta tele: si está bloqueada (mensaje a pantalla completa) o si pide actualizar. Lanza si el servidor no responde. */
+    suspend fun bloqueo(): Bloqueo = withContext(Dispatchers.IO) { Servidor.bloqueo(servidorOError(), ajustes.identidad()) }
+
+    private fun servidorOError(): String =
+        ajustes.servidor.ifEmpty { throw java.io.IOException("Falta la dirección del servidor de casa") }
+
     /** ¿El motor está en la propia tele? */
     fun motorEnTele(): Boolean = ajustes.motorEnTele
 

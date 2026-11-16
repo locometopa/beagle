@@ -3,7 +3,9 @@ package es.locometopa.beagle
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -23,11 +25,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import androidx.tv.material3.darkColorScheme
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /** Beagle, cliente nativo del servidor de casa de HomeTV. Las pantallas se van añadiendo según CHECKLIST.md. */
@@ -41,7 +46,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class Seccion(val titulo: String) {
-    Inicio("Inicio"), Canales("Canales"), Agenda("Agenda"), Buscar("Buscar"), Ajustes("Ajustes")
+    Inicio("Inicio"), Canales("Canales"), Agenda("Agenda"), Videos("Vídeos"), Buscar("Buscar"), Ajustes("Ajustes")
 }
 
 /** Lo que las pantallas de canales necesitan saber: los canales, si se están cargando, y cómo marcar un favorito. */
@@ -99,6 +104,23 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
 
         LaunchedEffect(Unit) { recargar() }
 
+        // El panel del servidor puede bloquear esta tele (mensaje a pantalla completa) o pedirle que se actualice.
+        // Se pregunta cada 20 s; si el servidor no responde se deja todo como estaba.
+        var bloqueo by remember { mutableStateOf<Bloqueo?>(null) }
+        var pedirActualizar by remember { mutableStateOf(0) }
+        LaunchedEffect(servidorVacio) {
+            while (!servidorVacio) {
+                try {
+                    val b = conexion.bloqueo()
+                    bloqueo = if (b.bloqueada) b else null
+                    if (b.actualizar) pedirActualizar++
+                } catch (e: Exception) {
+                    // sin conexión: no se bloquea ni se desbloquea
+                }
+                delay(20_000)
+            }
+        }
+
         val datos = Datos(catalogo, cargando, error, servidorVacio, cambios, { recargar() }, { favorito(it) })
 
         Box(Modifier.fillMaxSize()) {
@@ -118,13 +140,30 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                     Seccion.Inicio -> PantallaInicio(datos, ajustes) { seccion = Seccion.Ajustes }
                     Seccion.Canales -> PantallaCanales(datos)
                     Seccion.Agenda -> PantallaAgenda(datos)
+                    Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
                     Seccion.Buscar -> PantallaBuscar(datos)
                     Seccion.Ajustes -> PantallaAjustes(conexion, ajustes) { recargar() }
                 }
             }
         }
             // El aviso de versión nueva va por encima de todo y coge el foco
-            AvisoActualizacion(ajustes, Modifier.fillMaxSize())
+            AvisoActualizacion(ajustes, pedirActualizar, Modifier.fillMaxSize())
+            bloqueo?.let { PantallaBloqueada(it.mensaje) }
+        }
+    }
+}
+
+/** Pantalla completa con el mensaje del panel; no deja pulsar nada de lo que hay debajo. */
+@Composable
+private fun PantallaBloqueada(mensaje: String) {
+    val foco = remember { FocusRequester() }
+    BackHandler(enabled = true) { /* no se puede salir */ }
+    LaunchedEffect(Unit) { try { foco.requestFocus() } catch (e: Exception) { /* aún no está colocado */ } }
+    Box(Modifier.fillMaxSize().background(Colores.Fondo).focusRequester(foco).focusable(), contentAlignment = Alignment.Center) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(64.dp)) {
+            Text("Beagle está bloqueada", fontSize = 34.sp, color = Colores.Acento)
+            Spacer(Modifier.height(16.dp))
+            Text(mensaje.ifEmpty { "La tele está bloqueada." }, fontSize = 24.sp, color = Colores.Texto)
         }
     }
 }

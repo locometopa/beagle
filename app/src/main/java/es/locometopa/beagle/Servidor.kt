@@ -23,7 +23,20 @@ class Identidad(val equipo: String, val nombre: String, val version: String) {
 }
 
 /** Respuesta de /salud. */
-class Salud(val motor: String?, val vpn: Boolean, val apk: String?, val copias: Int, val ultimaCopia: String?)
+class Salud(
+    val motor: String?, val vpn: Boolean, val apk: String?, val copias: Int, val ultimaCopia: String?,
+    /** Cómo sale el servidor a internet con la VPN (proveedor · ciudad · país · IP), o null si está apagada. */
+    val vpnDetalle: String? = null,
+)
+
+/** Una carpeta de vídeos del servidor (o de su NAS). La de grabaciones sale también aquí, con id «grabaciones». */
+class Carpeta(val id: String, val nombre: String, val ruta: String, val existe: Boolean, val elementos: String, val encendido: Boolean?)
+
+/** Un vídeo de una carpeta. [url] ya es completa (con la dirección del servidor). */
+class VideoCarpeta(val nombre: String, val sub: String, val bytes: Long, val url: String)
+
+/** Lo que hay dentro de una carpeta: subcarpetas (nombre y ruta relativa) y vídeos. */
+class Listado(val subcarpetas: List<Pair<String, String>>, val videos: List<VideoCarpeta>)
 
 /** Respuesta de /sincro: los datos compartidos entre las teles, tal cual los guarda el servidor. */
 class Sincro(val rev: Long, val datos: JSONObject?, val ligero: Boolean, val sinCambios: Boolean)
@@ -104,7 +117,12 @@ object Servidor {
             is Boolean -> v
             else -> false
         }
+        val detalle = (v as? JSONObject)?.takeIf { vpnActiva }?.let { o ->
+            listOf("proveedor", "ciudad", "pais", "ip").mapNotNull { k -> if (o.isNull(k)) null else o.optString(k, "").ifEmpty { null } }
+                .joinToString(" · ").ifEmpty { null }
+        }
         return Salud(
+            vpnDetalle = detalle,
             motor = if (j.isNull("motor")) null else j.optString("motor", "").ifEmpty { null },
             vpn = vpnActiva,
             apk = if (j.isNull("apk")) null else j.optString("apk", "").ifEmpty { null },
@@ -177,6 +195,43 @@ object Servidor {
         val cuerpo = JSONObject().put("ids", ids).put("favorito", poner).toString()
         val r = pedirJson(casa(equipo) + "/api/favorito", 10000, "POST", cuerpo)
         if (r.optInt("cambiados", 0) == 0) throw IOException("El servidor no ha encontrado ese canal")
+    }
+
+    // --- Carpetas y grabaciones ---
+
+    fun carpetas(equipo: String): List<Carpeta> {
+        val a = pedirJson(casa(equipo) + "/api/carpetas", 15000).optJSONArray("carpetas") ?: return emptyList()
+        return (0 until a.length()).mapNotNull { i ->
+            val c = a.optJSONObject(i) ?: return@mapNotNull null
+            Carpeta(
+                id = c.optString("id", ""), nombre = c.optString("nombre", ""), ruta = if (c.isNull("ruta")) "" else c.optString("ruta", ""),
+                existe = c.optBoolean("existe", true), elementos = if (c.isNull("elementos")) "" else c.optString("elementos", ""),
+                encendido = if (c.isNull("encendido")) null else c.optBoolean("encendido"),
+            )
+        }
+    }
+
+    fun listarCarpeta(equipo: String, id: String, sub: String): Listado {
+        val u = casa(equipo) + "/api/carpetas/" + URLEncoder.encode(id, "UTF-8") + "/listar?sub=" + URLEncoder.encode(sub, "UTF-8")
+        val j = pedirJson(u, 30000)
+        val carpetas = j.optJSONArray("carpetas")?.let { a ->
+            (0 until a.length()).mapNotNull { i -> a.optJSONObject(i)?.let { it.optString("nombre", "") to it.optString("sub", "") } }
+        } ?: emptyList()
+        val videos = j.optJSONArray("videos")?.let { a ->
+            (0 until a.length()).mapNotNull { i ->
+                val v = a.optJSONObject(i) ?: return@mapNotNull null
+                val url = v.optString("url", "")
+                if (url.isEmpty()) null else VideoCarpeta(v.optString("nombre", ""), v.optString("sub", ""), v.optLong("bytes", 0), if (url.startsWith("http")) url else casa(equipo) + url)
+            }
+        } ?: emptyList()
+        return Listado(carpetas, videos)
+    }
+
+    // --- VPN del servidor ---
+
+    /** Pide al servidor cambiar su VPN: «warp», «proton» o «ninguna». Tarda unos segundos en aplicarse. */
+    fun cambiarVpn(equipo: String, usar: String) {
+        pedirJson(casa(equipo) + "/api/vpn", 15000, "POST", JSONObject().put("usar", usar).toString())
     }
 
     // --- /bloqueo ---

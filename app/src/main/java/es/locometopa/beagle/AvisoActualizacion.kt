@@ -44,13 +44,15 @@ private sealed interface Fase {
  * Tras «Actualizar ahora» se baja la APK y se abre el instalador de Android: ahí se confirma con el mando.
  */
 @Composable
-fun AvisoActualizacion(ajustes: Ajustes, modifier: Modifier = Modifier) {
+fun AvisoActualizacion(ajustes: Ajustes, repetir: Int = 0, modifier: Modifier = Modifier) {
     val contexto = LocalContext.current
     val alcance = rememberCoroutineScope()
     var fase by remember { mutableStateOf<Fase>(Fase.Nada) }
     var ocultado by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(Unit) {
+    // Se mira al abrir, y otra vez cada vez que el panel del servidor pide «Actualizar ya» (sube [repetir])
+    LaunchedEffect(repetir) {
+        if (repetir > 0) ocultado = null
         // Sin conexión o sin version.txt no se avisa de nada: simplemente no hay actualización que ofrecer
         val nueva = try {
             withContext(Dispatchers.IO) { Actualizador.buscar(ajustes.urlActualizaciones, ajustes.version()) }
