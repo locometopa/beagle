@@ -34,45 +34,50 @@ import androidx.tv.material3.Text
 fun abrirReproductor(contexto: Context, canales: List<Canal>, indice: Int) {
     Sesion.canales = canales
     Sesion.indice = indice
+    canales.getOrNull(indice)?.let { Ajustes(contexto.applicationContext).verCanal(it.clave) }
     contexto.startActivity(Intent(contexto, ReproductorActivity::class.java))
 }
 
 /** Lista de canales: OK reproduce; con ▶ se pasa a la estrella y OK marca o quita el favorito. */
 @Composable
 fun ListaCanales(canales: List<Canal>, cambios: Int, alFavorito: (Canal) -> Unit, modifier: Modifier = Modifier) {
-    val contexto = LocalContext.current
     if (canales.isEmpty()) {
         Text("No hay canales aquí.", fontSize = 18.sp, color = Colores.Apagado, modifier = modifier.padding(16.dp))
         return
     }
     LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        items(canales, key = { it.clave }) { c ->
-            // «cambios» sube al marcar un favorito para que la fila se vuelva a dibujar
-            val fav = if (cambios >= 0) c.favorito else false
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Fila(onClick = { abrirReproductor(contexto, canales, canales.indexOf(c)) }, modifier = Modifier.weight(1f)) {
-                    Box(Modifier.width(12.dp).height(12.dp).background(Color(Estilo.colorEstado(c.estado)), RoundedCornerShape(6.dp)))
-                    Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                        Text(c.titulo, fontSize = 20.sp, color = Colores.Texto)
-                        val sub = listOf(c.categoria, c.ahora).filter { it.isNotEmpty() }.joinToString(" · ")
-                        if (sub.isNotEmpty()) Text(sub, fontSize = 14.sp, color = Colores.Apagado)
-                    }
-                    if (c.enlaces.size > 1) Text("${c.enlaces.size} enlaces", fontSize = 14.sp, color = Colores.Apagado)
-                }
-                Fila(onClick = { alFavorito(c) }) {
-                    Text(if (fav) "★" else "☆", fontSize = 24.sp, color = if (fav) Colores.Acento else Colores.Apagado)
-                }
+        items(canales, key = { it.clave }) { c -> FilaCanal(canales, c, cambios, alFavorito) }
+    }
+}
+
+/** Un canal de la lista [lista]: OK lo reproduce (con zapping por esa lista); ▶ pasa a la estrella de favorito. */
+@Composable
+fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) -> Unit) {
+    val contexto = LocalContext.current
+    // «cambios» sube al marcar un favorito para que la fila se vuelva a dibujar
+    val fav = if (cambios >= 0) c.favorito else false
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Fila(onClick = { abrirReproductor(contexto, lista, lista.indexOf(c)) }, modifier = Modifier.weight(1f)) {
+            Box(Modifier.width(12.dp).height(12.dp).background(Color(Estilo.colorEstado(c.estado)), RoundedCornerShape(6.dp)))
+            Column(Modifier.padding(start = 14.dp).weight(1f)) {
+                Text(c.titulo, fontSize = 20.sp, color = Colores.Texto)
+                val sub = listOf(c.categoria, c.ahora).filter { it.isNotEmpty() }.joinToString(" · ")
+                if (sub.isNotEmpty()) Text(sub, fontSize = 14.sp, color = Colores.Apagado)
             }
+            if (c.enlaces.size > 1) Text("${c.enlaces.size} enlaces", fontSize = 14.sp, color = Colores.Apagado)
+        }
+        Fila(onClick = { alFavorito(c) }) {
+            Text(if (fav) "★" else "☆", fontSize = 24.sp, color = if (fav) Colores.Acento else Colores.Apagado)
         }
     }
 }
 
-/** Inicio: estado de la carga y los favoritos a mano. */
+/** Inicio: lo que se emite ahora, lo que viene, lo último que viste y tus favoritos. */
 @Composable
-fun PantallaInicio(datos: Datos, irAAjustes: () -> Unit) {
-    Column(Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 40.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+fun PantallaInicio(datos: Datos, ajustes: Ajustes, irAAjustes: () -> Unit) {
+    val cat = datos.catalogo
+    Column(Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 40.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Inicio", fontSize = 34.sp, color = Colores.Texto)
-        val cat = datos.catalogo
         when {
             datos.servidorVacio -> {
                 Text("Todavía no has puesto la dirección del servidor de casa.", fontSize = 20.sp, color = Colores.Texto)
@@ -90,13 +95,47 @@ fun PantallaInicio(datos: Datos, irAAjustes: () -> Unit) {
                     else -> "${cat.canales.size} canales"
                 }
                 Text(estado, fontSize = 16.sp, color = if (datos.error != null) Colores.Aviso else Colores.Apagado)
-                val favoritos = cat.canales.filter { it.favorito || datos.cambios < 0 }
-                Text("Favoritos", fontSize = 22.sp, color = Colores.Texto)
-                if (favoritos.isEmpty()) Text("Aún no tienes favoritos: márcalos con ★ en Canales.", fontSize = 16.sp, color = Colores.Apagado)
-                else ListaCanales(favoritos, datos.cambios, datos.alFavorito, Modifier.fillMaxSize())
+                ContenidoInicio(datos, cat, ajustes)
             }
         }
     }
+}
+
+@Composable
+private fun ContenidoInicio(datos: Datos, cat: Catalogo, ajustes: Ajustes) {
+    val contexto = LocalContext.current
+    val ahora = System.currentTimeMillis()
+    // Solo los eventos que puedo ver de verdad: con alguno de mis canales (ni «posibles» ni de listas apagadas)
+    val conCanal = cat.eventos.filter { !it.aplazado && !it.posible && !it.apagada && cat.canalesDe(it).isNotEmpty() }
+    val enDirecto = conCanal.filter { it.vivo }.take(6)
+    val luego = conCanal.filter { !it.vivo && it.inicio < ahora + 4 * 3600_000L }.take(5)
+    val porClave = cat.canales.associateBy { it.clave }
+    val vistos = ajustes.vistos.mapNotNull { porClave[it] }.take(6)
+    val favoritos = cat.canales.filter { it.favorito || datos.cambios < 0 }
+
+    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (enDirecto.isNotEmpty()) {
+            item(key = "t-vivo") { Titulo("En directo ahora") }
+            items(enDirecto, key = { "e-${it.id}" }) { e -> FilaEvento(e, cat) { abrirEvento(contexto, cat, e) } }
+        }
+        if (luego.isNotEmpty()) {
+            item(key = "t-luego") { Titulo("A continuación") }
+            items(luego, key = { "l-${it.id}" }) { e -> FilaEvento(e, cat) { abrirEvento(contexto, cat, e) } }
+        }
+        if (vistos.isNotEmpty()) {
+            item(key = "t-vistos") { Titulo("Vistos hace poco") }
+            items(vistos, key = { "v-${it.clave}" }) { c -> FilaCanal(vistos, c, datos.cambios, datos.alFavorito) }
+        }
+        item(key = "t-fav") { Titulo("Favoritos") }
+        if (favoritos.isEmpty()) item(key = "sin-fav") {
+            Text("Aún no tienes favoritos: márcalos con ★ en Canales.", fontSize = 16.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 16.dp))
+        } else items(favoritos, key = { "f-${it.clave}" }) { c -> FilaCanal(favoritos, c, datos.cambios, datos.alFavorito) }
+    }
+}
+
+@Composable
+private fun Titulo(texto: String) {
+    Text(texto, fontSize = 22.sp, color = Colores.Texto, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 16.dp))
 }
 
 /** Canales: categorías a la izquierda, canales a la derecha. */

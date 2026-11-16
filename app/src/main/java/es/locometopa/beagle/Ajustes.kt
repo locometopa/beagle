@@ -34,6 +34,16 @@ class Ajustes(private val contexto: Context) {
         get() = sp.getBoolean("sincroLigero", true)
         set(v) = sp.edit().putBoolean("sincroLigero", v).apply()
 
+    /** Claves de los últimos canales vistos, el más reciente primero (como `vistos` en HomeTV). */
+    var vistos: List<String>
+        get() = (sp.getString("vistos", "") ?: "").split('\n').filter { it.isNotEmpty() }
+        set(v) = sp.edit().putString("vistos", v.joinToString("\n")).apply()
+
+    /** Apunta un canal como visto: sube al principio y se quedan los 12 últimos. */
+    fun verCanal(clave: String) {
+        vistos = (listOf(clave) + vistos.filter { it != clave }).take(12)
+    }
+
     /** Motor de Ace Stream: en el servidor de casa (false, lo normal) o en la propia tele (true, 127.0.0.1). */
     var motorEnTele: Boolean
         get() = sp.getBoolean("motorEnTele", false)

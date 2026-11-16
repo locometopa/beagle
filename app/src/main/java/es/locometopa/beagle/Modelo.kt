@@ -37,7 +37,31 @@ class Canal(
     val estado: Int get() = enlaces.firstOrNull()?.orden ?: 2
 }
 
-class Catalogo(val canales: List<Canal>, val categorias: List<String>)
+/** Un evento de la agenda deportiva, ya cruzado por el servidor con los canales que tengo ([claves]). */
+class Evento(
+    val id: String,
+    val inicio: Long,
+    val titulo: String,
+    val competicion: String,
+    val deporte: String,
+    val canales: List<String>,
+    val gratis: List<String>,
+    val aplazado: Boolean,
+    val vivo: Boolean,
+    val posible: Boolean,
+    val apagada: Boolean,
+    val claves: List<String>,
+) {
+    /** Se puede ver en abierto (alguna cadena gratuita lo emite). */
+    val enAbierto: Boolean get() = gratis.isNotEmpty()
+}
+
+class Catalogo(val canales: List<Canal>, val categorias: List<String>, val eventos: List<Evento> = emptyList()) {
+    private val porClave: Map<String, Canal> = canales.associateBy { it.clave }
+
+    /** Mis canales que emiten el evento, con el mejor primero. */
+    fun canalesDe(e: Evento): List<Canal> = e.claves.mapNotNull { porClave[it] }.sortedBy { it.estado }
+}
 
 object Modelo {
     private val tildes = Regex("[\\u0300-\\u036f]")
@@ -86,7 +110,40 @@ object Modelo {
         }
         val orden = Collator.getInstance(Locale("es", "ES")).apply { strength = Collator.PRIMARY }
         val categorias = canales.map { it.categoria }.filter { it.isNotEmpty() }.distinct().sortedWith(orden)
-        return Catalogo(canales, categorias)
+        return Catalogo(canales, categorias, leerEventos(raiz))
+    }
+
+    private fun JSONObject.lista(nombre: String): List<String> {
+        val a = optJSONArray(nombre) ?: return emptyList()
+        return (0 until a.length()).mapNotNull { i -> a.optString(i, "").ifEmpty { null } }
+    }
+
+    /** La agenda que trae /api/simple. Un evento mal formado se salta sin estropear el resto. */
+    private fun leerEventos(raiz: JSONObject): List<Evento> {
+        val a = raiz.optJSONArray("agenda") ?: return emptyList()
+        val out = ArrayList<Evento>(a.length())
+        for (i in 0 until a.length()) {
+            val e = a.optJSONObject(i) ?: continue
+            val inicio = e.optLong("inicio", 0)
+            if (inicio <= 0) continue
+            out.add(
+                Evento(
+                    id = e.texto("id"),
+                    inicio = inicio,
+                    titulo = limpio(e.texto("titulo")),
+                    competicion = limpio(e.texto("competicion")),
+                    deporte = limpio(e.texto("deporte")),
+                    canales = e.lista("canales"),
+                    gratis = e.lista("gratis"),
+                    aplazado = e.optBoolean("aplazado", false),
+                    vivo = e.optBoolean("vivo", false),
+                    posible = e.optBoolean("posible", false),
+                    apagada = e.optBoolean("apagada", false),
+                    claves = e.lista("claves"),
+                )
+            )
+        }
+        return out.sortedBy { it.inicio }
     }
 
     /** Canales cuyo nombre contiene todas las palabras escritas. */

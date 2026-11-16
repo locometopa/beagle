@@ -85,10 +85,10 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 - [ ] Evento destacado: el partido en directo en tu mejor canal
 - [ ] Cuadrados de eventos destacados del día (`destacados`: 0–3)
-- [ ] Filas: en directo, a continuación, favoritos y una por deporte; lo que se puede ver, primero
+- [~] Filas: en directo, a continuación, favoritos y una por deporte; lo que se puede ver, primero
 - [ ] Filas por categoría de canales (`filasCategorias`)
-- [ ] Inicio en modo lista compacta (`inicioLista`)
-- [ ] Canales vistos hace poco (`vistos`)
+- [~] Inicio en modo lista compacta (`inicioLista`)
+- [~] Canales vistos hace poco (`vistos`)
 
 ## 7. Canales
 
@@ -116,12 +116,12 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [ ] Fuentes: todos los deportes (3 días), solo fútbol (15 días), Marca / Ciriaco (`agendaFuente`)
 - [ ] Cruce de la agenda con mis canales por nombre (quita calidades, diales y relleno; respeta números)
 - [ ] Nombres genéricos («DAZN») solo como *posible*
-- [ ] «Ver en el mejor canal» y estado de mis canales para cada evento
+- [~] «Ver en el mejor canal» y estado de mis canales para cada evento
 - [ ] «Asignar canal» a mano cuando el nombre no cuadra (`agendaMapa`)
-- [ ] Filtro «En abierto» (TDT, RTVE Play, autonómicas, YouTube)
-- [ ] Eventos en directo y aplazados
+- [~] Filtro «En abierto» (TDT, RTVE Play, autonómicas, YouTube)
+- [~] Eventos en directo y aplazados
 - [ ] Recordatorios / eventos favoritos con aviso (`recordatorios`, `POST /api/recordatorio`)
-- [ ] Usar la agenda ya cruzada del servidor (`GET /api/simple`) cuando haya servidor de casa
+- [~] Usar la agenda ya cruzada del servidor (`GET /api/simple`) cuando haya servidor de casa
 
 ## 10. Listas e importar (`importer.js`)
 
