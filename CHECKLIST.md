@@ -44,25 +44,25 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 3. Reproductor nativo (`ReproductorActivity.java`)
 
-- [ ] Media3 / ExoPlayer con la configuración que va bien en HomeTV (búfer 15/60/2,5/5 s)
-- [ ] Formato TS o HLS, elegible; recordar los canales que solo van en HLS
+- [~] Media3 / ExoPlayer con la configuración que va bien en HomeTV (búfer 15/60/2,5/5 s)
+- [~] Formato TS o HLS, elegible; recordar los canales que solo van en HLS
 - [ ] Canales IPTV/HLS directos (sin motor)
-- [ ] Zapping ▲▼ y botones de canal, con espera de 0,7 s y rótulo del canal
-- [ ] ◀▶ cambia de enlace del mismo canal
-- [ ] Recuperación en tres pasos: reconectar, volver a pedir el canal, siguiente enlace; dos vueltas
-- [ ] Panel con número, título, estado (peers, velocidad, búfer) y datos técnicos (resolución, códec, fps)
-- [ ] OK: información · OK dos veces: recolocar la imagen · mantener OK o Menú: opciones
-- [ ] Opciones del canal: favorito, elegir enlace, recargar, recolocar, ir a otro canal, salir
+- [~] Zapping ▲▼ y botones de canal, con espera de 0,7 s y rótulo del canal
+- [~] ◀▶ cambia de enlace del mismo canal
+- [~] Recuperación en tres pasos: reconectar, volver a pedir el canal, siguiente enlace; dos vueltas
+- [~] Panel con número, título, estado (peers, velocidad, búfer) y datos técnicos (resolución, códec, fps)
+- [~] OK: información · OK dos veces: recolocar la imagen · mantener OK o Menú: opciones
+- [~] Opciones del canal: favorito, elegir enlace, recargar, recolocar, ir a otro canal, salir
 - [ ] Sonido: elegir pista de audio y subtítulos (menú en dos pasos)
-- [ ] Sonido no compatible (AC3…): pedirlo convertido al servidor (`/aac/abrir`) y recordarlo
-- [ ] Vídeo no compatible (MPEG-2, HEVC 10 bits): pasar a otro enlace o avisar
-- [ ] Calidad ligera fuera de casa (`/aac/abrir?calidad=baja`)
+- [~] Sonido no compatible (AC3…): pedirlo convertido al servidor (`/aac/abrir`) y recordarlo
+- [~] Vídeo no compatible (MPEG-2, HEVC 10 bits): pasar a otro enlace o avisar
+- [~] Calidad ligera fuera de casa (`/aac/abrir?calidad=baja`)
 - [ ] Canales IPTV por la pasarela VPN del servidor (`tvPorVpn`)
 - [ ] Apuntar el resultado de cada enlace (arrancó o no, peers) para ordenar mejor después
 - [ ] Grabar el canal en el servidor (`/api/grabar`), indicador REC y parar la grabación
 - [ ] Vídeos de carpetas: pausa, saltos de 10 s / 1 min, pasar al siguiente al terminar
 - [ ] Gestos en el móvil: deslizar para canal y enlace, tocar, doble toque, mantener pulsado
-- [ ] Cerrar el canal y liberar el motor al salir
+- [~] Cerrar el canal y liberar el motor al salir
 
 ## 4. Reproductores externos
 
@@ -76,7 +76,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 - [ ] Diseño A3: menú lateral con los colores de HomeTV (`style.css`, `nav.js`)
 - [ ] Menú: Inicio, Canales, Agenda, Buscar, Importar, Listas, Móvil, Ajustes; recuerda dónde estabas
-- [ ] Todo manejable con el mando: foco visible, ▲▼◀▶, OK, Atrás, pulsación larga de OK
+- [~] Todo manejable con el mando: foco visible, ▲▼◀▶, OK, Atrás, pulsación larga de OK
 - [ ] Tipografía Outfit incluida en la app
 - [ ] Vídeo de entrada (intro) si el servidor tiene uno (`/intro.mp4`, ajuste `intro`)
 - [ ] Diseño para móvil (pantalla táctil) con la misma APK (`diseno: auto | tele | movil`)
@@ -93,21 +93,21 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 ## 7. Canales
 
 - [ ] Vista en lista (por defecto) y en cuadrícula
-- [ ] Estado de cada canal (vivo, sin peers, no encontrado, sin comprobar), peers y fecha de comprobación
+- [~] Estado de cada canal (vivo, sin peers, no encontrado, sin comprobar), peers y fecha de comprobación
 - [ ] Logotipos de los canales (`logos`)
-- [ ] Nombres limpios: los `_` pasan a espacios
-- [ ] Enlaces repetidos agrupados en un canal («3 enlaces»); OK reproduce el mejor (`agrupar`, `agenda.js: claveCanal`)
+- [~] Nombres limpios: los `_` pasan a espacios
+- [~] Enlaces repetidos agrupados en un canal («3 enlaces»); OK reproduce el mejor (`agrupar`, `agenda.js: claveCanal`)
 - [ ] Filtros: vivos, favoritos, sin comprobar, caídos; por categoría; por lista
 - [ ] Orden recomendado y otros órdenes (`orden`)
 - [ ] Ocultar los caídos (`hideDead`)
 - [ ] Ficha del canal y ajuste «OK abre la ficha o reproduce» (`okAction`)
 - [ ] Opciones del canal (pulsación larga o ⋮): favorito, renombrar, categoría, ver enlaces, borrar, juntar o separar
-- [ ] Favoritos
+- [~] Favoritos
 - [ ] Qué se emite ahora en el canal (guía, `guia.js`)
 
 ## 8. Buscar
 
-- [ ] Buscar canales con teclado cómodo para el mando
+- [~] Buscar canales con teclado cómodo para el mando
 - [ ] Buscar también eventos de la agenda
 - [ ] Buscar en las listas apagadas (`GET /api/buscar-canal`)
 
