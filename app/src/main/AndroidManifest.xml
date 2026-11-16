@@ -10,6 +10,32 @@
     <!-- Para instalar la APK nueva desde la propia app (Actualizaciones) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
+    <!-- Poder ver qué apps hay instaladas (VLC, Ace Stream, AceServe) y abrir sus enlaces -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="acestream" />
+        </intent>
+        <intent>
+            <action android:name="org.acestream.action.start_content" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" android:mimeType="video/*" />
+        </intent>
+        <package android:name="org.acestream.media" />
+        <package android:name="org.acestream.media.atv" />
+        <package android:name="org.acestream.core" />
+        <package android:name="org.acestream.core.atv" />
+        <package android:name="org.acestream.live" />
+        <package android:name="org.acestream.node" />
+        <package android:name="org.free.aceserve" />
+        <package android:name="com.jopsis.httpaceserveproxy" />
+        <package android:name="org.videolan.vlc" />
+        <package android:name="org.videolan.vlc.betav7neon" />
+        <package android:name="com.android.vending" />
+    </queries>
+
     <application
         android:allowBackup="true"
         android:icon="@drawable/icono"

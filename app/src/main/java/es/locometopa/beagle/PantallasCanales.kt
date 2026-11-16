@@ -32,6 +32,8 @@ import androidx.tv.material3.Text
 
 /** Abre el reproductor con esta lista (para hacer zapping por ella) empezando en [indice]. */
 fun abrirReproductor(contexto: Context, canales: List<Canal>, indice: Int) {
+    // Si en Ajustes hay otro reproductor (VLC, Ace Player…), se abre ahí en vez de en Beagle
+    canales.getOrNull(indice)?.let { if (Externos.abrirSegunAjuste(contexto, it)) return }
     Sesion.canales = canales
     Sesion.indice = indice
     canales.getOrNull(indice)?.let { Ajustes(contexto.applicationContext).verCanal(it.clave) }

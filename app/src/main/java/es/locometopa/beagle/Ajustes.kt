@@ -34,6 +34,11 @@ class Ajustes(private val contexto: Context) {
         get() = sp.getBoolean("sincroLigero", true)
         set(v) = sp.edit().putBoolean("sincroLigero", v).apply()
 
+    /** Con qué se ve un canal: Beagle u otra app (VLC, Ace Player, AceServe). */
+    var reproductor: Reproductor
+        get() = Reproductor.de(sp.getString("reproductor", "interno") ?: "interno")
+        set(v) = sp.edit().putString("reproductor", v.clave).apply()
+
     /** Claves de los últimos canales vistos, el más reciente primero (como `vistos` en HomeTV). */
     var vistos: List<String>
         get() = (sp.getString("vistos", "") ?: "").split('\n').filter { it.isNotEmpty() }

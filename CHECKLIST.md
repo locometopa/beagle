@@ -66,11 +66,11 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 4. Reproductores externos
 
-- [ ] Abrir en Ace Player (`AceListNativoPlugin: abrirApp`)
-- [ ] Abrir en AceServe (app Android `org.free.aceserve`)
-- [ ] Abrir en VLC
-- [ ] Ajuste de reproductor preferido: interno, Ace Player, AceServe, VLC o elegir cada vez
-- [ ] Saber qué apps están instaladas y llevar a la tienda si falta alguna
+- [~] Abrir en Ace Player (`AceListNativoPlugin: abrirApp`)
+- [~] Abrir en AceServe (app Android `org.free.aceserve`)
+- [~] Abrir en VLC
+- [~] Ajuste de reproductor preferido: interno, Ace Player, AceServe, VLC o elegir cada vez
+- [~] Saber qué apps están instaladas y llevar a la tienda si falta alguna
 
 ## 5. Navegación y diseño
 

@@ -96,6 +96,7 @@ fun PantallaAjustes(conexion: Conexion, ajustes: Ajustes, alCambiarServidor: () 
 
         FilaEstado(estado)
         FilaMotor(conexion)
+        FilaReproductor(ajustes)
         copia?.let { ResumenDatos(it) }
         Text("Beagle ${ajustes.version()}", fontSize = 14.sp, color = Apagado)
     }
@@ -161,5 +162,23 @@ private fun FilaMotor(conexion: Conexion) {
         }
         Button(onClick = { if (!probando) probar() }) { Text(if (probando) "Probando…" else "Probar motor") }
         resultado?.let { (bien, texto) -> Text(texto, fontSize = 16.sp, color = if (bien) Bien else Mal) }
+    }
+}
+
+/** Reproductor preferido: Beagle, Ace Player, AceServe, VLC o elegir cada vez; dice cuáles están instaladas. */
+@Composable
+private fun FilaReproductor(ajustes: Ajustes) {
+    val contexto = androidx.compose.ui.platform.LocalContext.current
+    var actual by remember { mutableStateOf(ajustes.reproductor) }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text("Reproductor", fontSize = 18.sp, color = Apagado)
+        Button(onClick = {
+            val todos = Reproductor.values()
+            actual = todos[(actual.ordinal + 1) % todos.size]
+            ajustes.reproductor = actual
+        }) { Text(actual.nombre) }
+        val apps = listOf(Reproductor.Vlc, Reproductor.AcePlayer, Reproductor.AceServe)
+            .joinToString(" · ") { it.nombre + if (Externos.instalada(contexto, it) != null) " ✓" else " ✗" }
+        Text(apps, fontSize = 15.sp, color = Apagado)
     }
 }
