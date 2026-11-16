@@ -173,8 +173,8 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 16. Actualizaciones
 
-- [ ] Mirar si hay versión nueva (`version.txt` en la rama `apk`, o en el servidor de casa)
-- [ ] Descargar e instalar la APK desde la app (permiso para instalar apps)
+- [~] Mirar si hay versión nueva (`version.txt` en la rama `apk`, o en el servidor de casa)
+- [~] Descargar e instalar la APK desde la app (permiso para instalar apps)
 - [ ] El servidor de casa guarda la APK de Beagle para actualizar dentro de casa (cambio en el repo `hometv`)
 
 ## 17. Relevo

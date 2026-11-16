@@ -19,15 +19,22 @@ class Ajustes(private val contexto: Context) {
         get() = sp.getBoolean("sincroLigero", true)
         set(v) = sp.edit().putBoolean("sincroLigero", v).apply()
 
+    /** Dónde están `version.txt` y `Beagle.apk` para actualizar (acaba en «/»). */
+    var urlActualizaciones: String
+        get() = sp.getString("urlActualizaciones", Actualizador.URL_POR_DEFECTO) ?: Actualizador.URL_POR_DEFECTO
+        set(v) = sp.edit().putString("urlActualizaciones", v).apply()
+
+    /** Versión de esta app («0.2.0»). */
+    fun version(): String = try {
+        contexto.packageManager.getPackageInfo(contexto.packageName, 0).versionName ?: "?"
+    } catch (e: Exception) {
+        "?"
+    }
+
     /** Así se presenta esta tele al servidor. El id sale del aparato y no cambia aunque se reinstale la app. */
     fun identidad(): Identidad {
         val androidId = Settings.Secure.getString(contexto.contentResolver, Settings.Secure.ANDROID_ID).orEmpty().ifEmpty { "tele" }
-        val version = try {
-            contexto.packageManager.getPackageInfo(contexto.packageName, 0).versionName ?: "?"
-        } catch (e: Exception) {
-            "?"
-        }
         val modelo = Build.MODEL.orEmpty().ifEmpty { "Android" }
-        return Identidad(androidId.take(12), "Beagle en $modelo", version)
+        return Identidad(androidId.take(12), "Beagle en $modelo", version())
     }
 }
