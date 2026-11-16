@@ -35,11 +35,11 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 2. Motor de Ace Stream
 
-- [ ] Motor del servidor de casa (`http://SERVIDOR:6878`) como principal (`engine.js`)
-- [ ] Motor en la propia tele (`http://127.0.0.1:6878`) como alternativa
-- [ ] Abrir canal: `getstream` / `manifest.m3u8` con `format=json`, por `id` o `infohash`
-- [ ] Reescribir las direcciones que devuelve el motor (vienen con 127.0.0.1)
-- [ ] Estado de la emisión (peers, velocidad) y orden de parar al salir
+- [~] Motor del servidor de casa (`http://SERVIDOR:6878`) como principal (`engine.js`)
+- [~] Motor en la propia tele (`http://127.0.0.1:6878`) como alternativa
+- [~] Abrir canal: `getstream` / `manifest.m3u8` con `format=json`, por `id` o `infohash`
+- [~] Reescribir las direcciones que devuelve el motor (vienen con 127.0.0.1)
+- [~] Estado de la emisión (peers, velocidad) y orden de parar al salir
 - [ ] Indicador del motor en la barra (conectado / esperando) y versión
 
 ## 3. Reproductor nativo (`ReproductorActivity.java`)

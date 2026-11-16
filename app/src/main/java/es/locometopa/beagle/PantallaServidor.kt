@@ -108,6 +108,7 @@ fun PantallaServidor(conexion: Conexion) {
         }
 
         FilaEstado(estado)
+        FilaMotor(conexion)
         copia?.let { Datos(it) }
     }
 }
@@ -145,5 +146,32 @@ private fun Datos(copia: Copia) {
         Text("${r.canales} canales" + if (r.ligero) " (sin los de listas apagadas)" else "", fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
         Text("${r.listas} listas, ${r.listasEncendidas} encendidas", fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
         Text("${r.favoritos} favoritos", fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
+    }
+}
+
+/** Motor de Ace Stream: dónde está (servidor de casa o esta tele) y si responde. */
+@Composable
+private fun FilaMotor(conexion: Conexion) {
+    val alcance = rememberCoroutineScope()
+    var enTele by remember { mutableStateOf(conexion.motorEnTele()) }
+    var resultado by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    var probando by remember { mutableStateOf(false) }
+
+    fun probar() {
+        probando = true
+        resultado = null
+        alcance.launch {
+            resultado = try { true to conexion.comprobarMotor() } catch (e: Exception) { false to (e.message ?: "No responde") }
+            probando = false
+        }
+    }
+
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text("Motor de Ace Stream", fontSize = 18.sp, color = Apagado)
+        Button(onClick = { enTele = !enTele; conexion.ponerMotorEnTele(enTele); resultado = null }) {
+            Text(if (enTele) "En esta tele" else "En el servidor de casa")
+        }
+        Button(onClick = { if (!probando) probar() }) { Text(if (probando) "Probando…" else "Probar motor") }
+        resultado?.let { (bien, texto) -> Text(texto, fontSize = 16.sp, color = if (bien) Bien else Mal) }
     }
 }

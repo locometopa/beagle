@@ -19,6 +19,18 @@ class Ajustes(private val contexto: Context) {
         get() = sp.getBoolean("sincroLigero", true)
         set(v) = sp.edit().putBoolean("sincroLigero", v).apply()
 
+    /** Motor de Ace Stream: en el servidor de casa (false, lo normal) o en la propia tele (true, 127.0.0.1). */
+    var motorEnTele: Boolean
+        get() = sp.getBoolean("motorEnTele", false)
+        set(v) = sp.edit().putBoolean("motorEnTele", v).apply()
+
+    /** Dirección del motor según el ajuste, o null si hace falta servidor y aún no se ha puesto. */
+    fun urlMotor(): String? = when {
+        motorEnTele -> Motor.URL_TELE
+        servidor.isNotEmpty() -> Motor.urlCasa(servidor)
+        else -> null
+    }
+
     /** Dónde están `version.txt` y `Beagle.apk` para actualizar (acaba en «/»). */
     var urlActualizaciones: String
         get() = sp.getString("urlActualizaciones", Actualizador.URL_POR_DEFECTO) ?: Actualizador.URL_POR_DEFECTO

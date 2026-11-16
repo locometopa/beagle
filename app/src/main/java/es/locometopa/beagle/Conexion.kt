@@ -87,6 +87,19 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         r
     }
 
+    /** ¿El motor está en la propia tele? */
+    fun motorEnTele(): Boolean = ajustes.motorEnTele
+
+    /** Cambia entre el motor del servidor de casa y el de la propia tele. */
+    fun ponerMotorEnTele(valor: Boolean) { ajustes.motorEnTele = valor }
+
+    /** Pregunta la versión al motor que toca según el ajuste. Devuelve un texto para enseñar, o lanza si no responde. */
+    suspend fun comprobarMotor(): String = withContext(Dispatchers.IO) {
+        val url = ajustes.urlMotor() ?: throw java.io.IOException("Primero hay que poner el servidor de casa")
+        val v = Motor(url, 8000).version()
+        "Motor Ace Stream ${v.version}" + (v.plataforma?.let { " ($it)" } ?: "")
+    }
+
     private fun motivoLegible(e: Exception, equipo: String): String = when (e) {
         is java.net.UnknownHostException -> "No se encuentra «$equipo» en la red"
         is java.net.SocketTimeoutException, is java.net.ConnectException ->
