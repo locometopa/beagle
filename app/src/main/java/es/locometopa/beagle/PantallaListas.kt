@@ -68,7 +68,7 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
         }
         mensaje?.let { (bien, t) -> Text(t, fontSize = 16.sp, color = if (bien) Colores.Aviso else Colores.Mal) }
 
-        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             item(key = "nueva") {
                 Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text("Añadir una lista", fontSize = 22.sp, color = Colores.Texto)

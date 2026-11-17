@@ -143,7 +143,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
         Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize().background(Colores.Fondo)) {
             // Menú lateral, como el de HomeTV: fondo más oscuro, marca, píldoras y el estado abajo
-            Column(Modifier.width(210.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 14.dp, vertical = 20.dp)) {
+            Column(Modifier.width(184.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 14.dp, vertical = 20.dp)) {
                 // El logo completo tal cual (perro y «Beagle TV» en una línea), solo reducido para que quepa
                 androidx.compose.foundation.Image(
                     androidx.compose.ui.res.painterResource(R.drawable.logo_completo), "Beagle TV",
@@ -152,7 +152,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                 )
                 for (s in Seccion.entries) {
                     ItemMenu(s.titulo, s == seccion, { seccion = s; ajustes.ultimaSeccion = s.name }, Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(4.dp))
+                    Spacer(Modifier.height(2.dp))
                 }
                 Spacer(Modifier.weight(1f))
                 // Reloj y estado del motor abajo, como en HomeTV
@@ -161,13 +161,13 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                     val formato = java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES"))
                     while (true) { hora = formato.format(java.util.Date()); delay(15_000) }
                 }
-                Text(hora, fontSize = 32.sp, color = Colores.Texto, modifier = Modifier.padding(start = 12.dp))
+                Text(hora, fontSize = 26.sp, color = Colores.Texto, modifier = Modifier.padding(start = 12.dp))
                 PildoraEstado(motor.first, motor.second, Modifier.padding(start = 12.dp))
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (seccion) {
                     Seccion.Inicio -> PantallaInicio(datos, ajustes) { seccion = Seccion.Ajustes }
-                    Seccion.Canales -> PantallaCanales(datos)
+                    Seccion.Canales -> PantallaCanales(datos, conexion, ajustes)
                     Seccion.Agenda -> PantallaAgenda(datos)
                     Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
                     Seccion.Buscar -> PantallaBuscar(datos, conexion)

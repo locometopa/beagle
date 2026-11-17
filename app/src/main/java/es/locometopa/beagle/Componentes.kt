@@ -51,8 +51,8 @@ val Outfit = FontFamily(
 // Los mismos tonos que HomeTV: gris oscuro con verde lima
 object Colores {
     val Fondo = Color(0xFF202020)
-    val Panel = Color(0xFF2A2A2A)
-    val PanelFoco = Color(0xFF363636)
+    val Panel = Color(0xFF2F2F2F)
+    val PanelFoco = Color(0xFF3E3E3E)
     val Lateral = Color(0xFF1B1B1B)
     val Linea = Color(0xFF4B4B4B)
     val Texto = Color(0xFFF4F4F4)
@@ -80,7 +80,7 @@ fun Fila(
             .background(if (foco) Colores.PanelFoco else Colores.Panel)
             .border(2.dp, if (foco) Colores.Acento else if (seleccionada) Colores.Linea else Color.Transparent, forma)
             .clickable(interactionSource = fuente, indication = null, onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 8.dp),
+            .padding(horizontal = 18.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = contenido,
     )
@@ -183,10 +183,10 @@ fun ItemMenu(texto: String, seleccionada: Boolean, onClick: () -> Unit, modifier
             .clip(forma)
             .background(fondo)
             .clickable(interactionSource = fuente, indication = null, onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 11.dp),
+            .padding(horizontal = 16.dp, vertical = 7.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(texto, fontSize = 20.sp, color = letra, fontWeight = if (foco || seleccionada) FontWeight.SemiBold else FontWeight.Medium)
+        Text(texto, fontSize = 16.sp, color = letra, fontWeight = if (foco || seleccionada) FontWeight.SemiBold else FontWeight.Medium)
     }
 }
 

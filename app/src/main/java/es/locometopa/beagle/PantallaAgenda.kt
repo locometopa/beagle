@@ -121,7 +121,7 @@ fun PantallaAgenda(datos: Datos) {
             filas.add(e)
         }
         if (filas.isEmpty()) Text("No hay eventos con este filtro.", fontSize = 18.sp, color = Colores.Apagado)
-        else LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        else LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(filas, key = { if (it is Evento) "e-${it.id}" else "d-$it" }) { f ->
                 if (f is Evento) FilaEvento(f, cat) { abrirEvento(contexto, cat, f) }
                 else Text((f as String).uppercase(), fontSize = 15.sp, color = Colores.Acento, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 6.dp))

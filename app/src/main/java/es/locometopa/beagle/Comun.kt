@@ -17,7 +17,7 @@ object Sesion {
 /** Colores y piezas de la pantalla (los mismos tonos que HomeTV). */
 object Estilo {
     const val FONDO = 0xFF202020.toInt()
-    const val PANEL = 0xFF2A2A2A.toInt()
+    const val PANEL = 0xFF2F2F2F.toInt()
     const val LINEA = 0xFF4B4B4B.toInt()
     const val TEXTO = 0xFFF4F4F4.toInt()
     const val APAGADO = 0xFFA0A0A0.toInt()

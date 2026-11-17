@@ -53,6 +53,8 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
     var reproductor by remember { mutableStateOf(ajustes.reproductor) }
     var mensaje by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     var seguro by remember { mutableStateOf(false) }
+    var ocultarCaidos by remember { mutableStateOf(ajustes.ocultarCaidos) }
+    var comprobando by remember { mutableStateOf<Comprobacion?>(null) }
 
     fun comprobar() {
         estado = Estado.Comprobando
@@ -122,6 +124,28 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             .joinToString(" · ") { it.nombre + if (Externos.instalada(contexto, it) != null) " ✓" else " ✗" }
         Text("Instaladas: $apps", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
 
+        FilaAjuste("Ocultar los caídos en «Todos»", if (ocultarCaidos) "Sí" else "No", { ocultarCaidos = !ocultarCaidos; ajustes.ocultarCaidos = ocultarCaidos })
+        val cp = comprobando
+        FilaAjuste(
+            if (cp?.activa == true) "Parar la comprobación de canales" else "Comprobar todos los canales (lo hace el servidor)",
+            if (cp == null) "›" else if (cp.activa) "${cp.hechos}/${cp.total} · ${cp.vivos} vivos" else "${cp.vivos} vivos de ${cp.total}",
+            {
+                val empezar = cp?.activa != true
+                comprobando = Comprobacion(empezar, 0, cp?.total ?: 0, 0, "")
+                alcance.launch {
+                    try {
+                        conexion.comprobar(empezar)
+                        while (true) {
+                            kotlinx.coroutines.delay(3000)
+                            val p = conexion.comprobacion()
+                            comprobando = p
+                            if (!p.activa) { alCambiarServidor(); break }
+                        }
+                    } catch (e: Exception) { mensaje = false to (e.message ?: "No se ha podido") ; comprobando = null }
+                }
+            },
+        )
+
         TituloAjustes("Servidor de casa")
         FilaAjuste("Estado", tituloEstado, { comprobar() }, colorValor = colorEstado)
         if (detalleEstado.isNotEmpty()) Text(detalleEstado, fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
@@ -170,6 +194,24 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
                     val c = conexion.copias()
                     true to if (c.isEmpty()) "Aún no hay copias" else "Copias (${c.size}): " + c.take(4).joinToString(" · ")
                 } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
+            }
+        })
+        FilaAjuste("Recuperar una copia del servidor…", "›", {
+            alcance.launch {
+                try {
+                    val nombres = conexion.copias().take(12)
+                    if (nombres.isEmpty()) { mensaje = true to "Aún no hay copias"; return@launch }
+                    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                        .setTitle("Recuperar una copia (sustituye los canales y listas de todas las teles)")
+                        .setItems(nombres.toTypedArray()) { _, i ->
+                            mensaje = true to "Recuperando…"
+                            alcance.launch {
+                                mensaje = try { conexion.restaurar(nombres[i]); alCambiarServidor(); true to "Copia recuperada: ${nombres[i]}" }
+                                catch (e: Exception) { false to (e.message ?: "No se ha podido") }
+                            }
+                        }
+                        .setNegativeButton("Cancelar", null).show()
+                } catch (e: Exception) { mensaje = false to (e.message ?: "No se ha podido") }
             }
         })
         FilaAjuste("Limpiar la caché de la app", "›", {

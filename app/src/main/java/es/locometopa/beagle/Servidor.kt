@@ -47,6 +47,9 @@ sealed interface Guardado {
     class Conflicto(val actual: Sincro) : Guardado
 }
 
+/** Cómo va la comprobación de canales: activa, canales hechos de total y cuántos están vivos. */
+class Comprobacion(val activa: Boolean, val hechos: Int, val total: Int, val vivos: Int, val nota: String)
+
 /** Respuesta de /bloqueo. */
 class Bloqueo(val bloqueada: Boolean, val mensaje: String, val actualizar: Boolean)
 
@@ -274,6 +277,27 @@ object Servidor {
     fun copias(equipo: String): List<String> {
         val a = org.json.JSONArray(pedir(casa(equipo) + "/copias", 10000))
         return (0 until a.length()).map { a.optJSONObject(it)?.optString("nombre", "") ?: a.optString(it) }.filter { it.isNotEmpty() }
+    }
+
+    // --- Comprobar canales (lo hace el servidor con su motor) ---
+
+    /** Cómo va la comprobación de canales del servidor (de /api/estado). */
+    fun comprobacion(equipo: String): Comprobacion {
+        val c = pedirJson(casa(equipo) + "/api/estado", 15000).optJSONObject("comprobacion")
+        return Comprobacion(
+            c?.optBoolean("activa", false) == true, c?.optInt("hechos", 0) ?: 0, c?.optInt("total", 0) ?: 0, c?.optInt("vivos", 0) ?: 0,
+            if (c == null || c.isNull("nota")) "" else c.optString("nota", ""),
+        )
+    }
+
+    /** Empieza o para la comprobación de todos los canales en el servidor. */
+    fun comprobar(equipo: String, empezar: Boolean) {
+        pedirJson(casa(equipo) + "/api/comprobar", 10000, "POST", JSONObject().put("accion", if (empezar) "empezar" else "parar").toString())
+    }
+
+    /** Recupera una copia del servidor: sustituye los canales y listas compartidos por los de esa copia. */
+    fun restaurar(equipo: String, nombre: String) {
+        pedirJson(casa(equipo) + "/api/restaurar", 30000, "POST", JSONObject().put("nombre", nombre).toString())
     }
 
     // --- VPN del servidor ---

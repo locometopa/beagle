@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -19,6 +20,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,7 +53,7 @@ fun ListaCanales(canales: List<Canal>, cambios: Int, alFavorito: (Canal) -> Unit
         Text("No hay canales aquí.", fontSize = 18.sp, color = Colores.Apagado, modifier = modifier.padding(16.dp))
         return
     }
-    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(canales, key = { it.clave }) { c -> FilaCanal(canales, c, cambios, alFavorito) }
     }
 }
@@ -126,7 +128,7 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
 @Composable
 fun PantallaInicio(datos: Datos, ajustes: Ajustes, irAAjustes: () -> Unit) {
     val cat = datos.catalogo
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when {
             datos.servidorVacio -> {
                 Text("Todavía no has puesto la dirección del servidor de casa.", fontSize = 20.sp, color = Colores.Texto)
@@ -158,12 +160,27 @@ private fun Titulo(texto: String) {
 
 /** Canales en filas: arriba las categorías, debajo los filtros y el orden, y luego la lista a todo el ancho. */
 @Composable
-fun PantallaCanales(datos: Datos) {
+fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
     val cat = datos.catalogo
     var elegida by remember { mutableStateOf("Todos") }
     var filtro by remember { mutableStateOf(0) }
     var orden by remember { mutableStateOf(0) }
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+    val alcance = androidx.compose.runtime.rememberCoroutineScope()
+    var prog by remember { mutableStateOf<Comprobacion?>(null) }
+    // Comprobación de canales del servidor: se mira al abrir (cada 3 s mientras corre) y al acabar se recargan los canales
+    LaunchedEffect(datos.servidorVacio) {
+        var antes = false
+        while (!datos.servidorVacio) {
+            try {
+                val p = conexion.comprobacion()
+                if (antes && !p.activa) datos.recargar()
+                antes = p.activa
+                prog = p
+            } catch (e: Exception) { /* sin respuesta: se vuelve a mirar */ }
+            kotlinx.coroutines.delay(if (antes) 3_000 else 20_000)
+        }
+    }
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (cat == null) {
             Text(if (datos.cargando) "Cargando canales…" else datos.error ?: "Sin canales", fontSize = 20.sp, color = Colores.Apagado)
             return@Column
@@ -174,6 +191,18 @@ fun PantallaCanales(datos: Datos) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Canales", fontSize = 28.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold)
             Text("  ${cat.canales.size}", fontSize = 18.sp, color = Colores.Apagado)
+            Spacer(Modifier.weight(1f))
+            val p = prog
+            val activa = p?.activa == true
+            Chip(
+                if (activa) "Comprobando ${p?.hechos}/${p?.total} · ${p?.vivos} vivos · parar" else "Comprobar canales",
+                activa,
+                {
+                    val empezar = !activa
+                    prog = Comprobacion(empezar, 0, p?.total ?: 0, 0, "")
+                    alcance.launch { try { conexion.comprobar(empezar) } catch (e: Exception) { prog = null } }
+                },
+            )
         }
         if (directo.isNotEmpty()) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -198,7 +227,7 @@ fun PantallaCanales(datos: Datos) {
             item { Chip(if (orden == 0) "Orden: mejores primero ▾" else "Orden: A-Z ▾", false, { orden = 1 - orden }, tam = 15) }
         }
         val lista = when (elegida) {
-            "Todos" -> cat.canales
+            "Todos" -> if (ajustes.ocultarCaidos) cat.canales.filter { it.estado < 2 } else cat.canales
             "★ Favoritos" -> cat.canales.filter { it.favorito }
             else -> cat.canales.filter { it.categoria == elegida }
         }
@@ -231,7 +260,7 @@ fun PantallaBuscar(datos: Datos, conexion: Conexion) {
             val canales = Modelo.buscar(cat.canales, texto)
             val q = Modelo.sinTildes(texto)
             val eventos = cat.eventos.filter { !it.aplazado && Modelo.sinTildes(it.titulo + " " + it.competicion).contains(q) }.take(12)
-            LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (eventos.isNotEmpty()) {
                     item(key = "t-ev") { Text("Agenda", fontSize = 20.sp, color = Colores.Acento, modifier = Modifier.padding(start = 8.dp, top = 4.dp)) }
                     items(eventos, key = { "ev-${it.id}" }) { e -> FilaEvento(e, cat) { abrirEvento(contexto, cat, e) } }

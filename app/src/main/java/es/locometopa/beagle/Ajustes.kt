@@ -54,6 +54,11 @@ class Ajustes(private val contexto: Context) {
         vistos = (listOf(clave) + vistos.filter { it != clave }).take(12)
     }
 
+    /** Ocultar en «Todos» los canales caídos (HomeTV: `hideDead`). */
+    var ocultarCaidos: Boolean
+        get() = sp.getBoolean("ocultarCaidos", false)
+        set(v) = sp.edit().putBoolean("ocultarCaidos", v).apply()
+
     /** Motor de Ace Stream: en el servidor de casa (false, lo normal) o en la propia tele (true, 127.0.0.1). */
     var motorEnTele: Boolean
         get() = sp.getBoolean("motorEnTele", false)

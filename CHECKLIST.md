@@ -30,7 +30,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Sincronización ligera: no guardar en la tele los canales de listas apagadas (`sincroLigero`)
 - [~] Darse de alta como tele en el servidor (sale en el panel, en «Teles») y decir qué se está viendo
 - [~] Bloqueo de la tele desde el servidor (`GET /bloqueo`): cierra el reproductor si se bloquea
-- [~] Copias de seguridad en el servidor (`PUT /copia`, `GET /copias`) (falta restaurar)
+- [~] Copias de seguridad en el servidor: hacer, ver y recuperar (`POST /api/restaurar`) (0.18.0)
 - [ ] Uso fuera de casa por Tailscale (dirección `100.x` o `.ts.net`)
 
 ## 2. Motor de Ace Stream
@@ -99,7 +99,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Enlaces repetidos agrupados en un canal («3 enlaces»); OK reproduce el mejor (`agrupar`, `agenda.js: claveCanal`)
 - [~] Filtros: vivos, sin caídos, caídos; por categoría (falta por lista)
 - [~] Orden recomendado y A-Z
-- [ ] Ocultar los caídos (`hideDead`)
+- [~] Ocultar los caídos (`hideDead`) en «Todos» (0.18.0)
 - [ ] Ficha del canal y ajuste «OK abre la ficha o reproduce» (`okAction`)
 - [ ] Opciones del canal (pulsación larga o ⋮): favorito, renombrar, categoría, ver enlaces, borrar, juntar o separar
 - [~] Favoritos
@@ -136,7 +136,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 11. Comprobar canales
 
-- [ ] Comprobar uno o todos: vivo si el motor descarga datos con al menos N peers (`minPeers`, `timeoutSec`)
+- [~] Comprobar todos los canales: lo hace el servidor (`POST /api/comprobar`), con progreso en Canales y Ajustes (0.18.0)
 - [ ] Varios a la vez y segunda pasada para los que fallan (`concurrency`, `retryFailed`)
 - [ ] Comprobar al abrir la app o cada N horas (`autoVerify`, `autoVerifyHours`, `preComprobar`)
 - [ ] Canales IPTV: comprobación propia sin motor (`GET /probe`)

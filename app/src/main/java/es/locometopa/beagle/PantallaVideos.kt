@@ -91,7 +91,7 @@ fun PantallaVideos(conexion: Conexion, servidorVacio: Boolean) {
             c == null -> {
                 val lista = carpetas.orEmpty()
                 if (lista.isEmpty()) Text("El servidor no tiene carpetas de vídeo. Se añaden desde su panel.", fontSize = 18.sp, color = Colores.Apagado)
-                LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(lista, key = { it.id }) { carpeta ->
                         Fila(onClick = { abrir(carpeta, emptyList()) }, modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.weight(1f)) {
@@ -112,7 +112,7 @@ fun PantallaVideos(conexion: Conexion, servidorVacio: Boolean) {
                 if (l == null || (l.subcarpetas.isEmpty() && l.videos.isEmpty())) Text("Esta carpeta está vacía.", fontSize = 18.sp, color = Colores.Apagado)
                 else {
                     val canales = l.videos.map { comoCanal(c, it) }
-                    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         items(l.subcarpetas, key = { "d-${it.second}" }) { (nombre, sub) ->
                             Fila(onClick = { abrir(c, ruta + sub) }, modifier = Modifier.fillMaxWidth()) {
                                 Text("📁  $nombre", fontSize = 20.sp, color = Colores.Texto)
