@@ -5,7 +5,9 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,16 +29,28 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 
+/** Outfit, la misma letra que HomeTV, incluida en la app. */
+val Outfit = FontFamily(
+    Font(R.font.outfit_regular, FontWeight.Normal),
+    Font(R.font.outfit_medium, FontWeight.Medium),
+    Font(R.font.outfit_semibold, FontWeight.SemiBold),
+    Font(R.font.outfit_bold, FontWeight.Bold),
+)
+
 // Los mismos tonos que HomeTV
 object Colores {
     val Fondo = Color(0xFF202020)
     val Panel = Color(0xFF2D2D2D)
+    val Lateral = Color(0xFF1B1B1B)
     val Texto = Color(0xFFF4F4F4)
     val Apagado = Color(0xFFA0A0A0)
     val Acento = Color(0xFFC6F24E)
@@ -59,8 +73,8 @@ fun Fila(
     Row(
         modifier
             .clip(forma)
-            .background(if (foco) Colores.Acento.copy(alpha = 0.25f) else if (seleccionada) Color.White.copy(alpha = 0.10f) else Color.Transparent)
-            .border(2.dp, if (foco) Colores.Acento else Color.Transparent, forma)
+            .background(if (foco) Color.White.copy(alpha = 0.16f) else if (seleccionada) Color.White.copy(alpha = 0.10f) else Color.Transparent)
+            .border(2.dp, if (foco) Color.White else Color.Transparent, forma)
             .clickable(interactionSource = fuente, indication = null, onClick = onClick)
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
@@ -96,7 +110,7 @@ fun CampoTexto(
             value = valor,
             onValueChange = alCambiar,
             singleLine = true,
-            textStyle = TextStyle(color = Colores.Texto, fontSize = 20.sp),
+            textStyle = TextStyle(color = Colores.Texto, fontSize = 20.sp, fontFamily = Outfit),
             cursorBrush = SolidColor(Colores.Acento),
             keyboardOptions = KeyboardOptions(keyboardType = teclado, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { editando = false; alAceptar() }),
@@ -115,5 +129,34 @@ fun CampoTexto(
     // Al terminar de escribir el foco vuelve a la fila, para seguir con el mando donde estabas
     LaunchedEffect(editando) {
         if (!editando && haEditado) { try { devolver.requestFocus() } catch (e: Exception) { /* sin foco que devolver */ } }
+    }
+}
+
+/** Opción del menú lateral, como `.mi` de HomeTV: píldora; la sección actual en verde, la que tiene el foco en blanco. */
+@Composable
+fun ItemMenu(texto: String, seleccionada: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val fuente = remember { MutableInteractionSource() }
+    val foco by fuente.collectIsFocusedAsState()
+    val forma = RoundedCornerShape(999.dp)
+    val fondo = if (foco) Color.White else if (seleccionada) Colores.Acento else Color.Transparent
+    val letra = if (foco || seleccionada) Colores.Fondo else Colores.Apagado
+    Row(
+        modifier
+            .clip(forma)
+            .background(fondo)
+            .clickable(interactionSource = fuente, indication = null, onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(texto, fontSize = 20.sp, color = letra, fontWeight = if (foco || seleccionada) FontWeight.SemiBold else FontWeight.Medium)
+    }
+}
+
+/** Píldora con un punto de color, como `.pill.engine`: verde = bien, rojo = mal, ámbar = comprobando, gris = sin datos. */
+@Composable
+fun PildoraEstado(texto: String, color: Color, modifier: Modifier = Modifier) {
+    Row(modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(Modifier.size(10.dp).clip(RoundedCornerShape(50)).background(color))
+        Text(texto, fontSize = 16.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 10.dp))
     }
 }

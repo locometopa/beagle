@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -27,8 +28,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.tv.material3.LocalTextStyle
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import androidx.tv.material3.darkColorScheme
@@ -63,8 +67,9 @@ class Datos(
 @Composable
 fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
     MaterialTheme(colorScheme = darkColorScheme(primary = Colores.Acento, background = Colores.Fondo, onBackground = Colores.Texto)) {
+        CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.merge(TextStyle(fontFamily = Outfit))) {
         val alcance = rememberCoroutineScope()
-        var seccion by remember { mutableStateOf(Seccion.Inicio) }
+        var seccion by remember { mutableStateOf(Seccion.entries.firstOrNull { it.name == ajustes.ultimaSeccion } ?: Seccion.Inicio) }
         var catalogo by remember { mutableStateOf(conexion.catalogoLocal()) }
         var cargando by remember { mutableStateOf(false) }
         var error by remember { mutableStateOf<String?>(null) }
@@ -121,19 +126,31 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
             }
         }
 
+        // Estado del motor para la píldora del menú: se comprueba al arrancar y cada minuto
+        var motor by remember { mutableStateOf<Pair<String, androidx.compose.ui.graphics.Color>>("Motor…" to Colores.Aviso) }
+        LaunchedEffect(servidorVacio, ajustes.motorEnTele) {
+            while (!servidorVacio) {
+                motor = try { conexion.comprobarMotor(); "Motor listo" to Colores.Bien } catch (e: Exception) { "Motor sin respuesta" to Colores.Mal }
+                delay(60_000)
+            }
+            if (servidorVacio) motor = "Sin servidor" to Colores.Apagado
+        }
+
         val datos = Datos(catalogo, cargando, error, servidorVacio, cambios, { recargar() }, { favorito(it) })
 
         Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize().background(Colores.Fondo)) {
-            // Menú lateral
-            Column(Modifier.width(240.dp).fillMaxHeight().background(Colores.Panel).padding(16.dp)) {
-                Text("Beagle", fontSize = 30.sp, color = Colores.Acento, modifier = Modifier.padding(start = 16.dp, top = 16.dp, bottom = 24.dp))
-                for (s in Seccion.values()) {
-                    Fila(onClick = { seccion = s }, modifier = Modifier.fillMaxWidth(), seleccionada = s == seccion) {
-                        Text(s.titulo, fontSize = 22.sp, color = Colores.Texto)
-                    }
-                    Spacer(Modifier.height(4.dp))
+            // Menú lateral, como el de HomeTV: fondo más oscuro, marca, píldoras y el estado abajo
+            Column(Modifier.width(250.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 18.dp, vertical = 28.dp)) {
+                Row(Modifier.padding(start = 12.dp, bottom = 26.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text("Beagle", fontSize = 30.sp, color = Colores.Acento, fontWeight = FontWeight.Bold)
                 }
+                for (s in Seccion.entries) {
+                    ItemMenu(s.titulo, s == seccion, { seccion = s; ajustes.ultimaSeccion = s.name }, Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(6.dp))
+                }
+                Spacer(Modifier.weight(1f))
+                PildoraEstado(motor.first, motor.second, Modifier.padding(start = 12.dp))
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (seccion) {
@@ -150,6 +167,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
             // El aviso de versión nueva va por encima de todo y coge el foco
             AvisoActualizacion(ajustes, pedirActualizar, Modifier.fillMaxSize())
             bloqueo?.let { PantallaBloqueada(it.mensaje) }
+        }
         }
     }
 }

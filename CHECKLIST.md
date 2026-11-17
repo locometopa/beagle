@@ -74,10 +74,10 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 5. Navegación y diseño
 
-- [ ] Diseño A3: menú lateral con los colores de HomeTV (`style.css`, `nav.js`)
-- [ ] Menú: Inicio, Canales, Agenda, Buscar, Importar, Listas, Móvil, Ajustes; recuerda dónde estabas
+- [~] Diseño A3: menú lateral con los colores de HomeTV (píldoras, foco blanco, estado del motor abajo) (`style.css`, `nav.js`)
+- [~] Menú: Inicio, Canales, Agenda, Buscar, Importar, Listas, Móvil, Ajustes; recuerda dónde estabas (recuerda la sección; faltan Importar y Móvil)
 - [~] Todo manejable con el mando: foco visible, ▲▼◀▶, OK, Atrás, pulsación larga de OK
-- [ ] Tipografía Outfit incluida en la app
+- [~] Tipografía Outfit incluida en la app
 - [ ] Vídeo de entrada (intro) si el servidor tiene uno (`/intro.mp4`, ajuste `intro`)
 - [ ] Diseño para móvil (pantalla táctil) con la misma APK (`diseno: auto | tele | movil`)
 

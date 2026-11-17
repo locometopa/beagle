@@ -19,6 +19,11 @@ class Ajustes(private val contexto: Context) {
         get() = if (sp.getString("formato", "ts") == "hls") "hls" else "ts"
         set(v) = sp.edit().putString("formato", v).apply()
 
+    /** Última sección abierta: la app vuelve a ella al arrancar. */
+    var ultimaSeccion: String
+        get() = sp.getString("ultimaSeccion", "") ?: ""
+        set(v) = sp.edit().putString("ultimaSeccion", v).apply()
+
     /** Enlaces que esta tele no lee en TS: se abren directamente en HLS. */
     var soloHls: Set<String>
         get() = HashSet(sp.getStringSet("soloHls", emptySet()) ?: emptySet())
