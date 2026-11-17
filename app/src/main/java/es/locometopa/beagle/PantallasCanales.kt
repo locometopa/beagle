@@ -61,7 +61,7 @@ fun ListaCanales(canales: List<Canal>, cambios: Int, alFavorito: (Canal) -> Unit
             androidx.compose.foundation.lazy.grid.GridCells.Fixed(5), modifier,
             verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(canales, key = { it.clave }) { c -> TarjetaCanal(canales, c, cambios, alFavorito, aj) }
+            itemsCuadricula(canales, key = { it.clave }) { c -> TarjetaCanal(canales, c, cambios, alFavorito, aj) }
         }
         return
     }
