@@ -26,6 +26,7 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.Tracks
+import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
@@ -657,6 +658,8 @@ class ReproductorActivity : Activity() {
             textos.add("⏺  Grabar este canal en el servidor…")
             acciones.add { menuGrabar(canal) }
         }
+        textos.add("♪  Sonido y subtítulos…")
+        acciones.add { menuSonido() }
         textos.add("⟳  Volver a cargar el canal")
         acciones.add {
             reintentos = 0
@@ -672,6 +675,46 @@ class ReproductorActivity : Activity() {
         textos.add("←  Salir a la lista de canales")
         acciones.add { finish() }
         dialogo(canal.titulo, textos) { acciones[it]() }.show()
+    }
+
+    /** Sonido y subtítulos, en dos pasos: primero qué cambiar y luego la pista. */
+    private fun menuSonido() {
+        val grupos = player.currentTracks.groups
+        val nAudio = grupos.count { it.type == C.TRACK_TYPE_AUDIO }
+        val nSubs = grupos.count { it.type == C.TRACK_TYPE_TEXT }
+        dialogo("Sonido y subtítulos", listOf("♪  Pista de audio ($nAudio)", "▤  Subtítulos ($nSubs)")) { menuPistas(if (it == 0) C.TRACK_TYPE_AUDIO else C.TRACK_TYPE_TEXT) }.show()
+    }
+
+    private fun menuPistas(tipo: Int) {
+        val grupos = player.currentTracks.groups.filter { it.type == tipo }
+        if (grupos.isEmpty()) {
+            txtEstado.text = if (tipo == C.TRACK_TYPE_TEXT) "Este canal no trae subtítulos" else "Este canal no trae pistas de audio"
+            mostrarPanel(4000)
+            return
+        }
+        val textos = ArrayList<String>()
+        val acciones = ArrayList<() -> Unit>()
+        val base = { player.trackSelectionParameters.buildUpon() }
+        if (tipo == C.TRACK_TYPE_TEXT) {
+            val sin = player.trackSelectionParameters.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)
+            textos.add((if (sin) "✓ " else "    ") + "Sin subtítulos")
+            acciones.add { player.trackSelectionParameters = base().setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true).build() }
+        }
+        for ((i, g) in grupos.withIndex()) {
+            val f = g.getTrackFormat(0)
+            val idioma = f.language?.let { Locale(it).getDisplayLanguage(Locale("es", "ES")).replaceFirstChar { c -> c.uppercase() } }
+            val nombre = f.label ?: idioma ?: "Pista ${i + 1}"
+            val detalle = listOfNotNull(
+                if (tipo == C.TRACK_TYPE_AUDIO && f.channelCount > 0) "${f.channelCount} canales" else null,
+                f.sampleMimeType?.substringAfter('/')?.uppercase(),
+            ).joinToString(" · ")
+            textos.add((if (g.isSelected) "✓ " else "    ") + nombre + if (detalle.isNotEmpty()) "  ($detalle)" else "")
+            acciones.add {
+                player.trackSelectionParameters = base().setTrackTypeDisabled(tipo, false)
+                    .setOverrideForType(TrackSelectionOverride(g.mediaTrackGroup, 0)).build()
+            }
+        }
+        dialogo(if (tipo == C.TRACK_TYPE_TEXT) "Subtítulos" else "Pista de audio", textos) { acciones[it]() }.show()
     }
 
     private fun menuGrabar(canal: Canal) {

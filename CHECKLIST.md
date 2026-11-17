@@ -53,7 +53,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Panel con número, título, estado (peers, velocidad, búfer) y datos técnicos (resolución, códec, fps)
 - [~] OK: información · OK dos veces: recolocar la imagen · mantener OK o Menú: opciones
 - [~] Opciones del canal: favorito, elegir enlace, recargar, recolocar, ir a otro canal, salir
-- [ ] Sonido: elegir pista de audio y subtítulos (menú en dos pasos)
+- [~] Sonido: elegir pista de audio y subtítulos (menú en dos pasos, en las opciones del reproductor) (0.18.2)
 - [~] Sonido no compatible (AC3…): pedirlo convertido al servidor (`/aac/abrir`) y recordarlo
 - [~] Vídeo no compatible (MPEG-2, HEVC 10 bits): pasar a otro enlace o avisar
 - [~] Calidad ligera fuera de casa (`/aac/abrir?calidad=baja`)
