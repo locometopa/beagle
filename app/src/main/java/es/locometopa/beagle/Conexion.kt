@@ -140,6 +140,17 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         if (!hecho) throw java.io.IOException("Esa lista ya no existe")
     }
 
+    /** Cambia los enlaces de un canal (por sus ids) en los datos compartidos: renombrar, cambiar de categoría u ocultar. */
+    suspend fun cambiarCanal(ids: Set<String>, cambio: (org.json.JSONObject) -> Unit) = modificarDatos { datos ->
+        val cs = datos.optJSONArray("channels") ?: throw java.io.IOException("No hay canales")
+        var n = 0
+        for (i in 0 until cs.length()) {
+            val c = cs.optJSONObject(i) ?: continue
+            if (c.optString("id", "") in ids) { cambio(c); n++ }
+        }
+        if (n == 0) throw java.io.IOException("Este canal no se puede cambiar desde aquí (es un enlace directo)")
+    }
+
     /** Ids de los canales (enlaces) que vienen de una lista, según la copia local. */
     fun idsDeLista(id: String): Set<String> {
         val cs = local.leer()?.datos?.optJSONArray("channels") ?: return emptySet()

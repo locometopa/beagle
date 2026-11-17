@@ -138,6 +138,10 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
             if (servidorVacio) motor = "Sin servidor" to Colores.Apagado
         }
 
+        AccionesCanal.conexion = conexion
+        AccionesCanal.alcance = alcance
+        AccionesCanal.categorias = catalogo?.categorias ?: emptyList()
+        AccionesCanal.recargar = { recargar() }
         val datos = Datos(catalogo, cargando, error, servidorVacio, cambios, { recargar() }, { favorito(it) })
 
         Box(Modifier.fillMaxSize()) {

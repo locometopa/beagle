@@ -101,7 +101,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Orden recomendado y A-Z
 - [~] Ocultar los caídos (`hideDead`) en «Todos» (0.18.0)
 - [ ] Ficha del canal y ajuste «OK abre la ficha o reproduce» (`okAction`)
-- [ ] Opciones del canal (pulsación larga o ⋮): favorito, renombrar, categoría, ver enlaces, borrar, juntar o separar
+- [~] Opciones del canal (⋮): favorito, renombrar, categoría, ver enlaces, ocultar (falta juntar o separar) (0.19.2)
 - [~] Favoritos
 - [ ] Qué se emite ahora en el canal (guía, `guia.js`)
 

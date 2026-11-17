@@ -69,15 +69,54 @@ private fun estadoTexto(c: Canal): Pair<String, Int> {
     }
 }
 
+/** Lo que las opciones de un canal necesitan de fuera (se rellena en BeagleApp): el servidor, las categorías y cómo recargar. */
+object AccionesCanal {
+    var conexion: Conexion? = null
+    var alcance: kotlinx.coroutines.CoroutineScope? = null
+    var categorias: List<String> = emptyList()
+    var recargar: () -> Unit = {}
+
+    fun cambiar(contexto: Context, c: Canal, aviso: String, cambio: (org.json.JSONObject) -> Unit) {
+        val con = conexion ?: return
+        val ids = c.enlaces.map { it.id }.filter { it.isNotEmpty() }.toSet()
+        alcance?.launch {
+            try { con.cambiarCanal(ids, cambio); recargar(); android.widget.Toast.makeText(contexto, aviso, android.widget.Toast.LENGTH_SHORT).show() }
+            catch (e: Exception) { android.widget.Toast.makeText(contexto, e.message ?: "No se ha podido cambiar", android.widget.Toast.LENGTH_LONG).show() }
+        }
+    }
+}
+
 /** Opciones del canal (el ⋮ de HomeTV): reproducir, favorito y ver sus enlaces. */
 private fun opcionesCanal(contexto: android.content.Context, lista: List<Canal>, c: Canal, alFavorito: (Canal) -> Unit) {
-    val textos = arrayOf("▶  Reproducir", if (c.favorito) "☆  Quitar de favoritos" else "★  Añadir a favoritos", "☰  Ver los enlaces (${c.enlaces.size})")
+    val textos = arrayOf("▶  Reproducir", if (c.favorito) "☆  Quitar de favoritos" else "★  Añadir a favoritos", "☰  Ver los enlaces (${c.enlaces.size})", "✎  Renombrar…", "▤  Cambiar de categoría…", "✕  Ocultar el canal")
     android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
         .setTitle(c.titulo)
         .setItems(textos) { _, cual ->
             when (cual) {
                 0 -> abrirReproductor(contexto, lista, lista.indexOf(c))
                 1 -> alFavorito(c)
+                3 -> {
+                    val campo = android.widget.EditText(contexto).apply { setText(c.titulo); setSelectAllOnFocus(true); setSingleLine() }
+                    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                        .setTitle("Nuevo nombre").setView(campo)
+                        .setPositiveButton("Guardar") { _, _ ->
+                            val nombre = campo.text.toString().trim()
+                            if (nombre.isNotEmpty()) AccionesCanal.cambiar(contexto, c, "Renombrado") { it.put("title", nombre) }
+                        }.setNegativeButton("Cancelar", null).show()
+                }
+                4 -> {
+                    val cats = AccionesCanal.categorias
+                    val nombres = (listOf("Sin categoría") + cats).toTypedArray()
+                    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                        .setTitle("Categoría de ${c.titulo}")
+                        .setItems(nombres) { _, i ->
+                            AccionesCanal.cambiar(contexto, c, "Categoría cambiada") { if (i == 0) it.remove("category") else it.put("category", cats[i - 1]) }
+                        }.setNegativeButton("Cancelar", null).show()
+                }
+                5 -> android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("¿Ocultar ${c.titulo}?").setMessage("Deja de salir en Canales en todas las teles. No se borra de la lista.")
+                    .setPositiveButton("Ocultar") { _, _ -> AccionesCanal.cambiar(contexto, c, "Canal oculto") { it.put("oculto", true) } }
+                    .setNegativeButton("Cancelar", null).show()
                 else -> {
                     val enl = c.enlaces.mapIndexed { i, e ->
                         val st = when {
