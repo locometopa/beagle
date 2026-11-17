@@ -121,6 +121,41 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
     }
 }
 
+
+/** Inicio: lo que se emite ahora, lo que viene, lo último que viste y tus favoritos. */
+@Composable
+fun PantallaInicio(datos: Datos, ajustes: Ajustes, irAAjustes: () -> Unit) {
+    val cat = datos.catalogo
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        when {
+            datos.servidorVacio -> {
+                Text("Todavía no has puesto la dirección del servidor de casa.", fontSize = 20.sp, color = Colores.Texto)
+                Button(onClick = irAAjustes) { Text("Ir a Ajustes") }
+            }
+            cat == null && datos.cargando -> Text("Cargando canales…", fontSize = 20.sp, color = Colores.Aviso)
+            cat == null -> {
+                Text(datos.error ?: "No se han podido cargar los canales", fontSize = 20.sp, color = Colores.Mal)
+                Button(onClick = datos.recargar) { Text("Reintentar") }
+            }
+            else -> {
+                val estado = when {
+                    datos.cargando -> "Actualizando…"
+                    datos.error != null -> "Sin conexión con el servidor: se usan los canales guardados"
+                    else -> "${cat.canales.size} canales"
+                }
+                Text(estado, fontSize = 16.sp, color = if (datos.error != null) Colores.Aviso else Colores.Apagado)
+                ContenidoPortada(datos, cat, ajustes)
+            }
+        }
+    }
+}
+
+@Composable
+private fun Titulo(texto: String) {
+    Text(texto, fontSize = 22.sp, color = Colores.Texto, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 16.dp))
+}
+
+
 /** Canales en filas: arriba las categorías, debajo los filtros y el orden, y luego la lista a todo el ancho. */
 @Composable
 fun PantallaCanales(datos: Datos) {
