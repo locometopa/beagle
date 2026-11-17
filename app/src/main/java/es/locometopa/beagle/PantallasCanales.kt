@@ -27,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Button
@@ -54,59 +56,69 @@ fun ListaCanales(canales: List<Canal>, cambios: Int, alFavorito: (Canal) -> Unit
     }
 }
 
-/** Un canal de la lista [lista]: OK lo reproduce (con zapping por esa lista); ▶ pasa a la estrella de favorito. */
+/** Estado del mejor enlace del canal, con las mismas palabras que HomeTV: En abierto · Vivo · N · Sin comprobar · Caído. */
+private fun estadoTexto(c: Canal): Pair<String, Int> {
+    val e = c.enlaces.firstOrNull() ?: return "Sin enlaces" to Estilo.colorEstado(2)
+    return when {
+        e.directo -> "En abierto" to Estilo.colorEstado(0)
+        e.estado == "alive" -> ("Vivo" + if (e.peers > 0) " · ${e.peers}" else "") to Estilo.colorEstado(0)
+        e.estado.isEmpty() -> "Sin comprobar" to Estilo.colorEstado(1)
+        else -> "Caído" to Estilo.colorEstado(2)
+    }
+}
+
+/** Opciones del canal (el ⋮ de HomeTV): reproducir, favorito y ver sus enlaces. */
+private fun opcionesCanal(contexto: android.content.Context, lista: List<Canal>, c: Canal, alFavorito: (Canal) -> Unit) {
+    val textos = arrayOf("▶  Reproducir", if (c.favorito) "☆  Quitar de favoritos" else "★  Añadir a favoritos", "☰  Ver los enlaces (${c.enlaces.size})")
+    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        .setTitle(c.titulo)
+        .setItems(textos) { _, cual ->
+            when (cual) {
+                0 -> abrirReproductor(contexto, lista, lista.indexOf(c))
+                1 -> alFavorito(c)
+                else -> {
+                    val enl = c.enlaces.mapIndexed { i, e ->
+                        val st = when {
+                            e.directo -> "en abierto"
+                            e.estado == "alive" -> "funcionaba · ${e.peers} peers"
+                            e.estado.isEmpty() -> "sin comprobar"
+                            else -> "caído la última vez"
+                        }
+                        "Enlace ${i + 1} · $st"
+                    }.toTypedArray()
+                    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                        .setTitle("Enlaces de ${c.titulo}").setItems(enl, null).setNegativeButton("Cerrar", null).show()
+                }
+            }
+        }
+        .setNegativeButton("Cerrar", null).show()
+}
+
+/** Una fila de canal como la de HomeTV: punto, nombre y categoría, estado a la derecha y ⋮ para las opciones. */
 @Composable
 fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) -> Unit) {
     val contexto = LocalContext.current
     // «cambios» sube al marcar un favorito para que la fila se vuelva a dibujar
     val fav = if (cambios >= 0) c.favorito else false
+    val (estado, colorEstado) = estadoTexto(c)
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Fila(onClick = { abrirReproductor(contexto, lista, lista.indexOf(c)) }, modifier = Modifier.weight(1f)) {
-            Box(Modifier.width(12.dp).height(12.dp).background(Color(Estilo.colorEstado(c.estado)), RoundedCornerShape(6.dp)))
+            Box(Modifier.width(12.dp).height(12.dp).background(Color(colorEstado), RoundedCornerShape(6.dp)))
             Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                Text(c.titulo, fontSize = 20.sp, color = Colores.Texto)
-                val sub = listOf(c.categoria, c.ahora).filter { it.isNotEmpty() }.joinToString(" · ")
-                if (sub.isNotEmpty()) Text(sub, fontSize = 14.sp, color = Colores.Apagado)
-            }
-            if (c.enlaces.size > 1) Text("${c.enlaces.size} enlaces", fontSize = 14.sp, color = Colores.Apagado)
-        }
-        Fila(onClick = { alFavorito(c) }) {
-            Text(if (fav) "★" else "☆", fontSize = 24.sp, color = if (fav) Colores.Acento else Colores.Apagado)
-        }
-    }
-}
-
-/** Inicio: lo que se emite ahora, lo que viene, lo último que viste y tus favoritos. */
-@Composable
-fun PantallaInicio(datos: Datos, ajustes: Ajustes, irAAjustes: () -> Unit) {
-    val cat = datos.catalogo
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        when {
-            datos.servidorVacio -> {
-                Text("Todavía no has puesto la dirección del servidor de casa.", fontSize = 20.sp, color = Colores.Texto)
-                Button(onClick = irAAjustes) { Text("Ir a Ajustes") }
-            }
-            cat == null && datos.cargando -> Text("Cargando canales…", fontSize = 20.sp, color = Colores.Aviso)
-            cat == null -> {
-                Text(datos.error ?: "No se han podido cargar los canales", fontSize = 20.sp, color = Colores.Mal)
-                Button(onClick = datos.recargar) { Text("Reintentar") }
-            }
-            else -> {
-                val estado = when {
-                    datos.cargando -> "Actualizando…"
-                    datos.error != null -> "Sin conexión con el servidor: se usan los canales guardados"
-                    else -> "${cat.canales.size} canales"
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (fav) Text("★ ", fontSize = 19.sp, color = Colores.Acento)
+                    Text(c.titulo, fontSize = 20.sp, color = if (c.estado == 2) Colores.Apagado else Colores.Texto, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (c.enlaces.size > 1) Text("  ${c.enlaces.size} enlaces", fontSize = 13.sp, color = Colores.Apagado)
                 }
-                Text(estado, fontSize = 16.sp, color = if (datos.error != null) Colores.Aviso else Colores.Apagado)
-                ContenidoPortada(datos, cat, ajustes)
+                Text(c.categoria.ifEmpty { "Sin categoría" }, fontSize = 14.sp, color = Colores.Apagado, maxLines = 1)
             }
+            if (c.ahora.isNotEmpty()) Text(c.ahora, fontSize = 14.sp, color = Colores.Apagado, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(220.dp).padding(end = 12.dp))
+            Text(estado, fontSize = 16.sp, color = Color(colorEstado), fontWeight = FontWeight.SemiBold, modifier = Modifier.width(130.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+        }
+        Fila(onClick = { opcionesCanal(contexto, lista, c, alFavorito) }) {
+            Text("⋮", fontSize = 24.sp, color = Colores.Apagado)
         }
     }
-}
-
-@Composable
-private fun Titulo(texto: String) {
-    Text(texto, fontSize = 22.sp, color = Colores.Texto, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 16.dp))
 }
 
 /** Canales en filas: arriba las categorías, debajo los filtros y el orden, y luego la lista a todo el ancho. */
@@ -122,6 +134,22 @@ fun PantallaCanales(datos: Datos) {
             return@Column
         }
         val categorias = listOf("Todos", "★ Favoritos") + cat.categorias
+        val directo = cat.eventos.filter { it.vivo && !it.aplazado && cat.canalesDe(it).isNotEmpty() }.take(8)
+        val contexto = LocalContext.current
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Canales", fontSize = 28.sp, color = Colores.Texto, fontWeight = FontWeight.Bold)
+            Text("  ${cat.canales.size}", fontSize = 18.sp, color = Colores.Apagado)
+        }
+        if (directo.isNotEmpty()) {
+            LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                item { Text("EN DIRECTO", fontSize = 14.sp, color = Colores.Bien, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 4.dp, top = 12.dp)) }
+                items(directo, key = { "d-${it.id}" }) { e ->
+                    Fila(onClick = { abrirEvento(contexto, cat, e) }) {
+                        Text(e.titulo, fontSize = 15.sp, color = Colores.Texto, maxLines = 1)
+                    }
+                }
+            }
+        }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(categorias, key = { it }) { nombre ->
                 Fila(onClick = { elegida = nombre }, seleccionada = nombre == elegida) { Text(nombre, fontSize = 17.sp, color = Colores.Texto) }
