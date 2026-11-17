@@ -173,6 +173,8 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         FilaAjuste("Estado", tituloEstado, { comprobar() }, colorValor = colorEstado)
         if (detalleEstado.isNotEmpty()) Text(detalleEstado, fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
         Text("Beagle coge los canales, las listas y los favoritos del servidor de casa de HomeTV (puerto 8096).", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+        if (conexion.servidor().isNotEmpty())
+            Text("Panel de gestión (desde el móvil o el PC, en el mismo wifi): http://${conexion.servidor().substringBefore(':')}:8096", fontSize = 14.sp, color = Colores.Texto, modifier = Modifier.padding(start = 6.dp))
         CampoTexto(texto, { texto = it }, "Servidor: pulsa OK y escribe la IP (192.168.1.180)", Modifier.fillMaxWidth(),
             teclado = KeyboardType.Uri, alAceptar = { conectar() })
         FilaAjuste("Buscar el servidor en la red", "›", {

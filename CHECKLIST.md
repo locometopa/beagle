@@ -149,6 +149,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [ ] Servidor en la tele (puerto 8095) con clave de 6 caracteres
 - [ ] Botón «Móvil»: código QR y dirección corta
 - [ ] Página del móvil servida por la tele
+- [~] Panel de gestión: lo sirve el servidor en su puerto 8096; Ajustes muestra la dirección (0.21.1)
 - [ ] Desde el móvil: importar listas o archivos, renombrar, cambiar categoría, favoritos, borrar, comprobar
 - [ ] Desde el móvil: mandar un canal a reproducir en la tele
 - [ ] Desde el móvil: listas (activar, actualizar, renombrar, borrar), ajustes, agenda, exportar
