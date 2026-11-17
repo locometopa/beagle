@@ -172,6 +172,11 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         var logos by remember { mutableStateOf(ajustes.logos) }
         FilaAjuste("Logos de los canales", if (logos) "Sí" else "No (más ligero)", { logos = !logos; ajustes.logos = logos; mensaje = true to "Se aplica al volver a Canales" })
 
+        var cuadricula by remember { mutableStateOf(ajustes.cuadricula) }
+        FilaAjuste("Canales en cuadrícula", if (cuadricula) "Sí" else "No (lista)", { cuadricula = !cuadricula; ajustes.cuadricula = cuadricula; mensaje = true to "Se aplica al volver a Canales" })
+        var okFicha by remember { mutableStateOf(ajustes.okFicha) }
+        FilaAjuste("OK sobre un canal", if (okFicha) "Abre su ficha" else "Reproduce", { okFicha = !okFicha; ajustes.okFicha = okFicha })
+
         var alAbrir by remember { mutableStateOf(ajustes.comprobarAlAbrir) }
         FilaAjuste("Comprobar los canales al abrir la app", if (alAbrir) "Sí" else "No", { alAbrir = !alAbrir; ajustes.comprobarAlAbrir = alAbrir })
 

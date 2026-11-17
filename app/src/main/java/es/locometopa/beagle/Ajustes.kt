@@ -77,6 +77,16 @@ class Ajustes(private val contexto: Context) {
         get() = sp.getBoolean("logos", true)
         set(v) = sp.edit().putBoolean("logos", v).apply()
 
+    /** Canales en cuadrícula (si no, en lista). */
+    var cuadricula: Boolean
+        get() = sp.getBoolean("cuadricula", false)
+        set(v) = sp.edit().putBoolean("cuadricula", v).apply()
+
+    /** OK sobre un canal abre su ficha (opciones) en vez de reproducir. */
+    var okFicha: Boolean
+        get() = sp.getBoolean("okFicha", false)
+        set(v) = sp.edit().putBoolean("okFicha", v).apply()
+
     var comprobarAlAbrir: Boolean
         get() = sp.getBoolean("comprobarAlAbrir", false)
         set(v) = sp.edit().putBoolean("comprobarAlAbrir", v).apply()

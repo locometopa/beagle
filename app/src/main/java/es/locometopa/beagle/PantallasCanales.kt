@@ -53,8 +53,37 @@ fun ListaCanales(canales: List<Canal>, cambios: Int, alFavorito: (Canal) -> Unit
         Text("No hay canales aquí.", fontSize = 18.sp, color = Colores.Apagado, modifier = modifier.padding(16.dp))
         return
     }
+    val contexto = LocalContext.current
+    val aj = remember { Ajustes(contexto.applicationContext) }
+    if (aj.cuadricula) {
+        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+            androidx.compose.foundation.lazy.grid.GridCells.Fixed(5), modifier,
+            verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(canales, key = { it.clave }) { c -> TarjetaCanal(canales, c, cambios, alFavorito, aj) }
+        }
+        return
+    }
     LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         items(canales, key = { it.clave }) { c -> FilaCanal(canales, c, cambios, alFavorito) }
+    }
+}
+
+/** Un canal en la vista de cuadrícula: logo, nombre y su estado. */
+@Composable
+private fun TarjetaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) -> Unit, aj: Ajustes) {
+    val contexto = LocalContext.current
+    val fav = if (cambios >= 0) c.favorito else false
+    val (estado, colorEstado) = estadoTexto(c)
+    Fila(onClick = {
+        if (aj.okFicha) opcionesCanal(contexto, lista, c, alFavorito) else abrirReproductor(contexto, lista, lista.indexOf(c))
+    }, modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+            LogoCanal(c.titulo, c.categoria, if (aj.logos) c.logo else "", Modifier.width(72.dp).height(48.dp))
+            Text((if (fav) "★ " else "") + c.titulo, fontSize = 14.sp, color = if (c.estado == 2) Colores.Apagado else Colores.Texto,
+                fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis, textAlign = androidx.compose.ui.text.style.TextAlign.Center, modifier = Modifier.padding(top = 6.dp))
+            Text(estado, fontSize = 12.sp, color = Color(colorEstado), maxLines = 1)
+        }
     }
 }
 
@@ -142,9 +171,11 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
     // «cambios» sube al marcar un favorito para que la fila se vuelva a dibujar
     val fav = if (cambios >= 0) c.favorito else false
     val (estado, colorEstado) = estadoTexto(c)
-    val usarLogos = remember { Ajustes(contexto.applicationContext).logos }
+    val ajustesFila = remember { Ajustes(contexto.applicationContext) }
+    val usarLogos = ajustesFila.logos
+    val okFicha = ajustesFila.okFicha
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Fila(onClick = { abrirReproductor(contexto, lista, lista.indexOf(c)) }, modifier = Modifier.weight(1f)) {
+        Fila(onClick = { if (okFicha) opcionesCanal(contexto, lista, c, alFavorito) else abrirReproductor(contexto, lista, lista.indexOf(c)) }, modifier = Modifier.weight(1f)) {
             Box(Modifier.width(12.dp).height(12.dp).background(Color(colorEstado), RoundedCornerShape(6.dp)))
             if (usarLogos) LogoCanal(c.titulo, c.categoria, c.logo, Modifier.padding(start = 12.dp).width(46.dp).height(32.dp))
             Column(Modifier.padding(start = 14.dp).weight(1f)) {

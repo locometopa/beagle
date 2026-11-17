@@ -92,7 +92,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 7. Canales
 
-- [ ] Vista en lista (por defecto) y en cuadrícula
+- [~] Vista en lista (por defecto) y en cuadrícula (0.24.0)
 - [~] Estado de cada canal (vivo, sin peers, no encontrado, sin comprobar), peers y fecha de comprobación
 - [~] Logotipos de los canales (ajuste `logos`, iniciales si no cargan) (0.23.0)
 - [~] Nombres limpios: los `_` pasan a espacios
@@ -100,7 +100,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Filtros: vivos, sin caídos, caídos; por categoría y por lista (0.19.1)
 - [~] Orden recomendado y A-Z
 - [~] Ocultar los caídos (`hideDead`) en «Todos» (0.18.0)
-- [ ] Ficha del canal y ajuste «OK abre la ficha o reproduce» (`okAction`)
+- [~] Ficha del canal (opciones) y ajuste «OK abre la ficha o reproduce» (0.24.0)
 - [~] Opciones del canal (⋮): favorito, renombrar, categoría, ver enlaces, ocultar (falta juntar o separar) (0.19.2)
 - [~] Favoritos
 - [ ] Qué se emite ahora en el canal (guía, `guia.js`)
