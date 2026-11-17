@@ -108,7 +108,7 @@ fun AvisoActualizacion(ajustes: Ajustes, repetir: Int = 0, modifier: Modifier = 
     // Ventana centrada sobre un fondo oscuro, como un diálogo
     Box(modifier.background(Color(0xB3000000)), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.width(640.dp).background(Color(0xFF18212F), RoundedCornerShape(16.dp)).padding(32.dp),
+            Modifier.width(640.dp).background(Color(0xFF2A2A2A), RoundedCornerShape(16.dp)).padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("Hay una versión nueva de Beagle", fontSize = 26.sp, color = MaterialTheme.colorScheme.onBackground)

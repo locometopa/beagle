@@ -74,7 +74,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 5. Navegación y diseño
 
-- [~] Diseño A3: menú lateral con los colores de HomeTV (píldoras, foco blanco, estado del motor abajo) (`style.css`, `nav.js`)
+- [~] Diseño igual que HomeTV: menú lateral fijo, gris #202020 con verde lima, filas planas sin sombras, Ajustes en lista de filas (0.17.0; se abandonó el diseño Sofá)
 - [~] Menú: Inicio, Canales, Agenda, Buscar, Importar, Listas, Móvil, Ajustes; recuerda dónde estabas (recuerda la sección; faltan Importar y Móvil)
 - [~] Todo manejable con el mando: foco visible, ▲▼◀▶, OK, Atrás, pulsación larga de OK
 - [~] Tipografía Outfit incluida en la app

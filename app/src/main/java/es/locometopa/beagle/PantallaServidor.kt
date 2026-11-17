@@ -1,7 +1,6 @@
 package es.locometopa.beagle
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,39 +25,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.Button
-import androidx.tv.material3.MaterialTheme
+import androidx.activity.compose.BackHandler
 import androidx.tv.material3.Text
 import kotlinx.coroutines.launch
 
-private val Panel = Color(0xFF18212F)
-private val Apagado = Color(0xFFA0A0A0)
-private val Bien = Color(0xFF2FBF71)
-private val Mal = Color(0xFFE5484D)
-private val Aviso = Color(0xFFE6B422)
-
-/** Ajustes: servidor de casa (dirección, búsqueda en la red, estado), motor, versión. */
+/** Ajustes como los de HomeTV: una lista de filas (nombre a la izquierda, valor en verde a la derecha), por grupos. */
 @Composable
 fun PantallaAjustes(conexion: Conexion, ajustes: Ajustes, servidorVacio: Boolean, alCambiarServidor: () -> Unit) {
-    var pestana by remember { mutableStateOf(0) }
-    Column(Modifier.fillMaxSize()) {
-        Row(Modifier.padding(start = 24.dp, top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Fila(onClick = { pestana = 0 }, seleccionada = pestana == 0) { Text("General", fontSize = 20.sp, color = Tinta.texto) }
-            Fila(onClick = { pestana = 1 }, seleccionada = pestana == 1) { Text("Listas", fontSize = 20.sp, color = Tinta.texto) }
-        }
-        if (pestana == 0) AjustesGenerales(conexion, ajustes, alCambiarServidor)
-        else PantallaListas(conexion, servidorVacio, alCambiarServidor)
-    }
+    var verListas by remember { mutableStateOf(false) }
+    BackHandler(enabled = verListas) { verListas = false }
+    if (verListas) PantallaListas(conexion, servidorVacio, alCambiarServidor)
+    else AjustesGenerales(conexion, ajustes, alCambiarServidor) { verListas = true }
 }
 
 @Composable
-private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServidor: () -> Unit) {
+private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServidor: () -> Unit, abrirListas: () -> Unit) {
     val alcance = rememberCoroutineScope()
+    val contexto = androidx.compose.ui.platform.LocalContext.current
     var texto by remember { mutableStateOf(conexion.servidor()) }
     var estado by remember { mutableStateOf<Estado>(if (conexion.servidor().isEmpty()) Estado.SinServidor else Estado.Comprobando) }
     var copia by remember { mutableStateOf(conexion.copiaLocal()) }
+    var enTele by remember { mutableStateOf(conexion.motorEnTele()) }
+    var motor by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    var reproductor by remember { mutableStateOf(ajustes.reproductor) }
+    var mensaje by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    var seguro by remember { mutableStateOf(false) }
 
     fun comprobar() {
         estado = Estado.Comprobando
@@ -79,139 +73,13 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         comprobar()
     }
 
-    // Al abrir se pregunta al servidor (la copia local ya está a la vista)
-    LaunchedEffect(Unit) { if (conexion.servidor().isNotEmpty()) comprobar() }
-
-    Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 32.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
-    ) {
-        Text("Ajustes", fontSize = 34.sp, color = MaterialTheme.colorScheme.onBackground)
-        Text("Servidor de casa", fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
-        Text(
-            "Beagle coge los canales, las listas y los favoritos del servidor de casa de HomeTV (puerto 8096).",
-            fontSize = 16.sp, color = Apagado,
-        )
-
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            CampoTexto(texto, { texto = it }, "Pulsa OK y escribe la IP (192.168.1.180)", Modifier.width(420.dp),
-                teclado = KeyboardType.Uri, alAceptar = { conectar() })
-            Button(onClick = { conectar() }) { Text("Conectar") }
-            Button(onClick = {
-                estado = Estado.Buscando
-                alcance.launch {
-                    val ip = conexion.buscar()
-                    if (ip != null) { texto = ip; alCambiarServidor(); comprobar() }
-                    else estado = Estado.NoResponde("No se ha encontrado el servidor en esta red", copia)
-                }
-            }) { Text("Buscar en la red") }
-        }
-
-        FilaEstado(estado)
-        FilaMotor(conexion)
-        FilaVpn(estado, conexion) { comprobar() }
-        FilaReproductor(ajustes)
-        FilaDatos(conexion)
-        copia?.let { ResumenDatos(it) }
-        Text("Beagle ${ajustes.version()}", fontSize = 14.sp, color = Apagado)
-    }
-}
-
-@Composable
-private fun FilaEstado(estado: Estado) {
-    val (color, titulo, detalle) = when (estado) {
-        is Estado.SinServidor -> Triple(Apagado, "Sin servidor", "Escribe la IP del servidor o pulsa «Buscar en la red».")
-        is Estado.Buscando -> Triple(Aviso, "Buscando…", "Recorriendo la red local (tarda unos segundos).")
-        is Estado.Comprobando -> Triple(Aviso, "Comprobando…", "")
-        is Estado.Conectado -> Triple(
-            Bien, "Conectado",
-            listOfNotNull(
-                estado.salud.motor?.let { "Motor Ace Stream $it" } ?: "Motor Ace Stream parado",
-                if (estado.salud.vpn) "VPN activa" else null,
-                estado.salud.apk?.let { "HomeTV $it en el servidor" },
-                estado.aviso,
-            ).joinToString(" · "),
-        )
-        is Estado.NoResponde -> Triple(Mal, "Sin conexión", estado.motivo + if (estado.copia != null) " · se usa la copia guardada en la tele" else "")
-    }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        Box(Modifier.width(14.dp).height(14.dp).background(color, RoundedCornerShape(7.dp)))
-        Text(titulo, fontSize = 22.sp, color = color)
-        if (detalle.isNotEmpty()) Text(detalle, fontSize = 16.sp, color = Apagado)
-    }
-}
-
-@Composable
-private fun ResumenDatos(copia: Copia) {
-    val r = copia.resumen
-    Column(Modifier.background(Panel, RoundedCornerShape(12.dp)).padding(24.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Lo que hay en la tele", fontSize = 18.sp, color = Apagado)
-        Spacer(Modifier.height(4.dp))
-        Text("${r.canales} canales" + if (r.ligero) " (sin los de listas apagadas)" else "", fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
-        Text("${r.listas} listas, ${r.listasEncendidas} encendidas", fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
-        Text("${r.favoritos} favoritos", fontSize = 18.sp, color = MaterialTheme.colorScheme.onBackground)
-    }
-}
-
-/** Motor de Ace Stream: dónde está (servidor de casa o esta tele) y si responde. */
-@Composable
-private fun FilaMotor(conexion: Conexion) {
-    val alcance = rememberCoroutineScope()
-    var enTele by remember { mutableStateOf(conexion.motorEnTele()) }
-    var resultado by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
-    var probando by remember { mutableStateOf(false) }
-
-    fun probar() {
-        probando = true
-        resultado = null
-        alcance.launch {
-            resultado = try { true to conexion.comprobarMotor() } catch (e: Exception) { false to (e.message ?: "No responde") }
-            probando = false
-        }
-    }
-
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Motor de Ace Stream", fontSize = 18.sp, color = Apagado)
-        Button(onClick = { enTele = !enTele; conexion.ponerMotorEnTele(enTele); resultado = null }) {
-            Text(if (enTele) "En esta tele" else "En el servidor de casa")
-        }
-        Button(onClick = { if (!probando) probar() }) { Text(if (probando) "Probando…" else "Probar motor") }
-        resultado?.let { (bien, texto) -> Text(texto, fontSize = 16.sp, color = if (bien) Bien else Mal) }
-    }
-}
-
-/** Reproductor preferido: Beagle, Ace Player, AceServe, VLC o elegir cada vez; dice cuáles están instaladas. */
-@Composable
-private fun FilaReproductor(ajustes: Ajustes) {
-    val contexto = androidx.compose.ui.platform.LocalContext.current
-    var actual by remember { mutableStateOf(ajustes.reproductor) }
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-        Text("Reproductor", fontSize = 18.sp, color = Apagado)
-        Button(onClick = {
-            val todos = Reproductor.values()
-            actual = todos[(actual.ordinal + 1) % todos.size]
-            ajustes.reproductor = actual
-        }) { Text(actual.nombre) }
-        val apps = listOf(Reproductor.Vlc, Reproductor.AcePlayer, Reproductor.AceServe)
-            .joinToString(" · ") { it.nombre + if (Externos.instalada(contexto, it) != null) " ✓" else " ✗" }
-        Text(apps, fontSize = 15.sp, color = Apagado)
-    }
-}
-
-/** VPN del servidor (WARP o Proton): cómo está y cambiarla desde la tele. */
-@Composable
-private fun FilaVpn(estado: Estado, conexion: Conexion, recomprobar: () -> Unit) {
-    val e = estado as? Estado.Conectado ?: return
-    val alcance = rememberCoroutineScope()
-    var mensaje by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
-
-    fun cambiar(usar: String) {
+    fun cambiarVpn(usar: String) {
         mensaje = true to "Cambiando la VPN del servidor… tarda unos segundos"
         alcance.launch {
             try {
                 conexion.cambiarVpn(usar)
                 kotlinx.coroutines.delay(8000)
-                recomprobar()
+                comprobar()
                 mensaje = null
             } catch (x: Exception) {
                 mensaje = false to (x.message ?: "No se ha podido cambiar la VPN")
@@ -219,53 +87,106 @@ private fun FilaVpn(estado: Estado, conexion: Conexion, recomprobar: () -> Unit)
         }
     }
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Text("VPN del servidor", fontSize = 18.sp, color = Apagado)
-            Text(if (e.salud.vpn) "activa" + (e.salud.vpnDetalle?.let { " · $it" } ?: "") else "apagada", fontSize = 16.sp, color = if (e.salud.vpn) Bien else Apagado)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            Button(onClick = { cambiar("warp") }) { Text("WARP") }
-            Button(onClick = { cambiar("proton") }) { Text("Proton") }
-            Button(onClick = { cambiar("ninguna") }) { Text("Sin VPN") }
-        }
-        mensaje?.let { (bien, texto) -> Text(texto, fontSize = 15.sp, color = if (bien) Aviso else Mal) }
-    }
-}
+    // Al abrir se pregunta al servidor (la copia local ya está a la vista)
+    LaunchedEffect(Unit) { if (conexion.servidor().isNotEmpty()) comprobar() }
 
-/** Copias de seguridad en el servidor, limpiar la caché de la app y empezar de cero en esta tele. */
-@Composable
-private fun FilaDatos(conexion: Conexion) {
-    val contexto = androidx.compose.ui.platform.LocalContext.current
-    val alcance = rememberCoroutineScope()
-    var mensaje by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
-    var seguro by remember { mutableStateOf(false) }
-    Text("Datos", fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Button(onClick = {
+    val (colorEstado, tituloEstado, detalleEstado) = when (val e = estado) {
+        is Estado.SinServidor -> Triple(Colores.Apagado, "Sin servidor", "Escribe la IP del servidor o pulsa «Buscar en la red».")
+        is Estado.Buscando -> Triple(Colores.Aviso, "Buscando…", "Recorriendo la red local (tarda unos segundos).")
+        is Estado.Comprobando -> Triple(Colores.Aviso, "Comprobando…", "")
+        is Estado.Conectado -> Triple(
+            Colores.Bien, "Conectado",
+            listOfNotNull(
+                e.salud.motor?.let { "Motor Ace Stream $it" } ?: "Motor Ace Stream parado",
+                if (e.salud.vpn) "VPN activa" else null,
+                e.salud.apk?.let { "HomeTV $it en el servidor" },
+                e.aviso,
+            ).joinToString(" · "),
+        )
+        is Estado.NoResponde -> Triple(Colores.Mal, "Sin conexión", e.motivo + if (e.copia != null) " · se usa la copia guardada en la tele" else "")
+    }
+
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text("Ajustes", fontSize = 28.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold)
+
+        FilaAjuste("Listas de canales", "encender, apagar, añadir ›", abrirListas)
+        FilaAjuste("Reproductor", reproductor.nombre, {
+            val todos = Reproductor.values()
+            reproductor = todos[(reproductor.ordinal + 1) % todos.size]
+            ajustes.reproductor = reproductor
+        })
+        val apps = listOf(Reproductor.Vlc, Reproductor.AcePlayer, Reproductor.AceServe)
+            .joinToString(" · ") { it.nombre + if (Externos.instalada(contexto, it) != null) " ✓" else " ✗" }
+        Text("Instaladas: $apps", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+
+        TituloAjustes("Servidor de casa")
+        FilaAjuste("Estado", tituloEstado, { comprobar() }, colorValor = colorEstado)
+        if (detalleEstado.isNotEmpty()) Text(detalleEstado, fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+        Text("Beagle coge los canales, las listas y los favoritos del servidor de casa de HomeTV (puerto 8096).", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+        CampoTexto(texto, { texto = it }, "Servidor: pulsa OK y escribe la IP (192.168.1.180)", Modifier.fillMaxWidth(),
+            teclado = KeyboardType.Uri, alAceptar = { conectar() })
+        FilaAjuste("Buscar el servidor en la red", "›", {
+            estado = Estado.Buscando
+            alcance.launch {
+                val ip = conexion.buscar()
+                if (ip != null) { texto = ip; alCambiarServidor(); comprobar() }
+                else estado = Estado.NoResponde("No se ha encontrado el servidor en esta red", copia)
+            }
+        })
+        val conectado = estado as? Estado.Conectado
+        if (conectado != null) {
+            TituloAjustes("VPN del servidor")
+            FilaAjuste("Estado de la VPN", if (conectado.salud.vpn) "activa" + (conectado.salud.vpnDetalle?.let { " · $it" } ?: "") else "apagada",
+                { comprobar() }, colorValor = if (conectado.salud.vpn) Colores.Bien else Colores.Apagado)
+            FilaAjuste("Cloudflare WARP", "usar ›", { cambiarVpn("warp") })
+            FilaAjuste("Proton VPN", "usar ›", { cambiarVpn("proton") })
+            FilaAjuste("Sin VPN", "›", { cambiarVpn("ninguna") })
+        }
+
+        TituloAjustes("Motor de Ace Stream")
+        FilaAjuste("Dónde está el motor", if (enTele) "En esta tele" else "En el servidor de casa", {
+            enTele = !enTele; conexion.ponerMotorEnTele(enTele); motor = null
+        })
+        FilaAjuste("Probar el motor", motor?.second ?: "›", {
+            motor = true to "Probando…"
+            alcance.launch {
+                motor = try { true to conexion.comprobarMotor() } catch (e: Exception) { false to (e.message ?: "No responde") }
+            }
+        }, colorValor = if (motor?.first == false) Colores.Mal else Colores.Acento)
+
+        TituloAjustes("Copia de seguridad y mantenimiento")
+        FilaAjuste("Hacer una copia ahora en el servidor", "›", {
             mensaje = true to "Guardando la copia en el servidor…"
             alcance.launch {
                 mensaje = try { true to "Copia guardada: " + conexion.copiaAhora() } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
             }
-        }) { Text("Copia de seguridad ahora") }
-        Button(onClick = {
+        })
+        FilaAjuste("Ver las copias del servidor", "›", {
             alcance.launch {
                 mensaje = try {
                     val c = conexion.copias()
                     true to if (c.isEmpty()) "Aún no hay copias" else "Copias (${c.size}): " + c.take(4).joinToString(" · ")
                 } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
             }
-        }) { Text("Ver copias") }
-        Button(onClick = {
+        })
+        FilaAjuste("Limpiar la caché de la app", "›", {
             val n = try { contexto.cacheDir.deleteRecursively() } catch (e: Exception) { false }
             mensaje = true to if (n) "Caché limpia" else "No había nada que limpiar"
-        }) { Text("Limpiar caché") }
-    }
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Button(onClick = {
+        })
+        FilaAjuste(if (seguro) "¿Seguro? Pulsa otra vez para borrar lo guardado en esta tele" else "Empezar de cero en esta tele", "›", {
             if (!seguro) { seguro = true; mensaje = false to "Pulsa otra vez «Empezar de cero» para borrar lo guardado en esta tele (el servidor no se toca)" }
             else { seguro = false; conexion.empezarDeCero(); mensaje = true to "Hecho: cierra y abre la app para volver a cargarlo todo del servidor" }
-        }) { Text(if (seguro) "¿Seguro? Pulsa otra vez" else "Empezar de cero") }
+        }, peligro = true)
+        mensaje?.let { (bien, t) -> Text(t, fontSize = 15.sp, color = if (bien) Colores.Bien else Colores.Aviso, modifier = Modifier.padding(start = 6.dp, top = 4.dp)) }
+
+        copia?.let { c ->
+            TituloAjustes("Lo que hay en la tele")
+            val r = c.resumen
+            Text("${r.canales} canales" + (if (r.ligero) " (sin los de listas apagadas)" else "") + " · ${r.listas} listas, ${r.listasEncendidas} encendidas · ${r.favoritos} favoritos", fontSize = 15.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+        }
+        Text("Beagle ${ajustes.version()}", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp, top = 12.dp, bottom = 24.dp))
     }
-    mensaje?.let { (bien, t) -> Text(t, fontSize = 16.sp, color = if (bien) Bien else Aviso) }
 }

@@ -16,15 +16,15 @@ object Sesion {
 
 /** Colores y piezas de la pantalla (los mismos tonos que HomeTV). */
 object Estilo {
-    const val FONDO = 0xFF0B1220.toInt()
-    const val PANEL = 0xFF18212F.toInt()
-    const val LINEA = 0xFF2A3547.toInt()
+    const val FONDO = 0xFF202020.toInt()
+    const val PANEL = 0xFF2A2A2A.toInt()
+    const val LINEA = 0xFF4B4B4B.toInt()
     const val TEXTO = 0xFFF4F4F4.toInt()
-    const val APAGADO = 0xFF9AA3B2.toInt()
-    const val ACENTO = 0xFFFCA12C.toInt()
-    const val BIEN = 0xFF2FBF71.toInt()
-    const val AVISO = 0xFFE6B422.toInt()
-    const val MAL = 0xFFE5484D.toInt()
+    const val APAGADO = 0xFFA0A0A0.toInt()
+    const val ACENTO = 0xFFC6F24E.toInt()
+    const val BIEN = 0xFF7FE0A8.toInt()
+    const val AVISO = 0xFFF0C64A.toInt()
+    const val MAL = 0xFFFF6B6E.toInt()
     const val NADA = 0xFF666666.toInt()
 
     fun dp(c: Context, v: Int): Int = (v * c.resources.displayMetrics.density + 0.5f).toInt()
@@ -38,7 +38,7 @@ object Estilo {
     fun selector(c: Context): Drawable {
         val radio = dp(c, 10).toFloat()
         return StateListDrawable().apply {
-            addState(intArrayOf(android.R.attr.state_focused), redondo(0x40FCA12C, radio).apply { setStroke(dp(c, 2), ACENTO) })
+            addState(intArrayOf(android.R.attr.state_focused), redondo(0x33C6F24E, radio).apply { setStroke(dp(c, 2), ACENTO) })
             addState(intArrayOf(android.R.attr.state_pressed), redondo(0x26FFFFFF, radio))
             addState(intArrayOf(), ColorDrawable(0))
         }

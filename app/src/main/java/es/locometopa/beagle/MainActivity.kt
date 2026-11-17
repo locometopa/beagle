@@ -27,11 +27,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.onKeyEvent
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -74,7 +69,7 @@ class Datos(
 @Composable
 fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
     MaterialTheme(colorScheme = darkColorScheme(primary = Colores.Acento, background = Colores.Fondo, onBackground = Colores.Texto)) {
-        CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.merge(TextStyle(fontFamily = Cuerpo))) {
+        CompositionLocalProvider(LocalTextStyle provides LocalTextStyle.current.merge(TextStyle(fontFamily = Outfit))) {
         val alcance = rememberCoroutineScope()
         var seccion by remember { mutableStateOf(Seccion.entries.firstOrNull { it.name == ajustes.ultimaSeccion } ?: Seccion.Inicio) }
         var catalogo by remember { mutableStateOf(conexion.catalogoLocal()) }
@@ -145,59 +140,41 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
 
         val datos = Datos(catalogo, cargando, error, servidorVacio, cambios, { recargar() }, { favorito(it) })
 
-        // El menú no se ve: se abre con ◀ (o pulsando el perro de arriba) y se cierra con Atrás
-        var menuAbierto by remember { mutableStateOf(false) }
-        val focoMenu = remember { FocusRequester() }
-        BackHandler(enabled = menuAbierto) { menuAbierto = false }
-        LaunchedEffect(menuAbierto) { if (menuAbierto) try { focoMenu.requestFocus() } catch (e: Exception) { /* aún no está colocado */ } }
-
-        Box(
-            Modifier.fillMaxSize().background(Colores.Fondo).onKeyEvent { ev ->
-                // ◀ que ninguna fila ha usado abre el menú
-                if (!menuAbierto && ev.type == androidx.compose.ui.input.key.KeyEventType.KeyDown && ev.key == androidx.compose.ui.input.key.Key.DirectionLeft) { menuAbierto = true; true } else false
-            },
-        ) {
-            Column(Modifier.fillMaxSize()) {
-                // Barra de arriba: el perro abre el menú; a la derecha el estado del motor
-                Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 32.dp, top = 12.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Fila(onClick = { menuAbierto = true }) {
-                        androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.icono), "Menú", Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)))
-                        Column(Modifier.padding(start = 12.dp, end = 8.dp)) {
-                            Text("◀ Menú", fontSize = 13.sp, color = Tinta.suave)
-                            Text(seccion.titulo, fontSize = 17.sp, color = Tinta.texto, fontWeight = FontWeight.SemiBold)
-                        }
-                    }
-                    Spacer(Modifier.weight(1f))
-                    PildoraEstado(motor.first, motor.second)
+        Box(Modifier.fillMaxSize()) {
+        Row(Modifier.fillMaxSize().background(Colores.Fondo)) {
+            // Menú lateral, como el de HomeTV: fondo más oscuro, marca, píldoras y el estado abajo
+            Column(Modifier.width(210.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 14.dp, vertical = 20.dp)) {
+                // El logo completo tal cual (perro y «Beagle TV» en una línea), solo reducido para que quepa
+                androidx.compose.foundation.Image(
+                    androidx.compose.ui.res.painterResource(R.drawable.logo_completo), "Beagle TV",
+                    Modifier.fillMaxWidth().padding(bottom = 18.dp),
+                    contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                )
+                for (s in Seccion.entries) {
+                    ItemMenu(s.titulo, s == seccion, { seccion = s; ajustes.ultimaSeccion = s.name }, Modifier.fillMaxWidth())
+                    Spacer(Modifier.height(4.dp))
                 }
-                Box(Modifier.weight(1f).fillMaxWidth()) {
-                    when (seccion) {
-                        Seccion.Inicio -> PantallaInicio(datos, ajustes) { seccion = Seccion.Ajustes }
-                        Seccion.Canales -> PantallaCanales(datos)
-                        Seccion.Agenda -> PantallaAgenda(datos)
-                        Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
-                        Seccion.Buscar -> PantallaBuscar(datos, conexion)
-                        Seccion.Ajustes -> PantallaAjustes(conexion, ajustes, servidorVacio) { recargar() }
-                    }
+                Spacer(Modifier.weight(1f))
+                // Reloj y estado del motor abajo, como en HomeTV
+                var hora by remember { mutableStateOf("") }
+                LaunchedEffect(Unit) {
+                    val formato = java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES"))
+                    while (true) { hora = formato.format(java.util.Date()); delay(15_000) }
+                }
+                Text(hora, fontSize = 32.sp, color = Colores.Texto, modifier = Modifier.padding(start = 12.dp))
+                PildoraEstado(motor.first, motor.second, Modifier.padding(start = 12.dp))
+            }
+            Box(Modifier.weight(1f).fillMaxHeight()) {
+                when (seccion) {
+                    Seccion.Inicio -> PantallaInicio(datos, ajustes) { seccion = Seccion.Ajustes }
+                    Seccion.Canales -> PantallaCanales(datos)
+                    Seccion.Agenda -> PantallaAgenda(datos)
+                    Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
+                    Seccion.Buscar -> PantallaBuscar(datos, conexion)
+                    Seccion.Ajustes -> PantallaAjustes(conexion, ajustes, servidorVacio) { recargar() }
                 }
             }
-            if (menuAbierto) {
-                // Un velo oscuro y el cajón con el logo y las secciones
-                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)))
-                Column(Modifier.width(300.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 16.dp, vertical = 24.dp)) {
-                    androidx.compose.foundation.Image(
-                        androidx.compose.ui.res.painterResource(R.drawable.logo_completo), "Beagle TV",
-                        Modifier.fillMaxWidth().padding(bottom = 22.dp),
-                        contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
-                    )
-                    for (s in Seccion.entries) {
-                        ItemMenu(s.titulo, s == seccion, { seccion = s; ajustes.ultimaSeccion = s.name; menuAbierto = false }, Modifier.fillMaxWidth().then(if (s == seccion) Modifier.focusRequester(focoMenu) else Modifier))
-                        Spacer(Modifier.height(4.dp))
-                    }
-                    Spacer(Modifier.weight(1f))
-                    PildoraEstado(motor.first, motor.second, Modifier.padding(start = 12.dp))
-                }
-            }
+        }
             // El aviso de versión nueva va por encima de todo y coge el foco
             AvisoActualizacion(ajustes, pedirActualizar, Modifier.fillMaxSize())
             bloqueo?.let { PantallaBloqueada(it.mensaje) }

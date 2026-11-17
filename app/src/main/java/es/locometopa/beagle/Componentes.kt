@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -23,7 +25,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -39,66 +40,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.tv.material3.Text
 
-/** Figtree para el texto y Fraunces para los títulos, incluidas en la app. */
-val Cuerpo = FontFamily(
-    Font(R.font.figtree_regular, FontWeight.Normal),
-    Font(R.font.figtree_medium, FontWeight.Medium),
-    Font(R.font.figtree_semibold, FontWeight.SemiBold),
-    Font(R.font.figtree_bold, FontWeight.Bold),
-)
-val Titulos = FontFamily(
-    Font(R.font.fraunces_semibold, FontWeight.SemiBold),
-    Font(R.font.fraunces_bold, FontWeight.Bold),
+/** Outfit, la misma letra que HomeTV, incluida en la app. */
+val Outfit = FontFamily(
+    Font(R.font.outfit_regular, FontWeight.Normal),
+    Font(R.font.outfit_medium, FontWeight.Medium),
+    Font(R.font.outfit_semibold, FontWeight.SemiBold),
+    Font(R.font.outfit_bold, FontWeight.Bold),
 )
 
-// Los mismos tonos que HomeTV
+// Los mismos tonos que HomeTV: gris oscuro con verde lima
 object Colores {
-    val Fondo = Color(0xFF101B2E)
-    val Panel = Color(0xFF1B2A45)
-    val Lateral = Color(0xFF07101F)
-    val Texto = Color(0xFFF4F6FA)
-    val Apagado = Color(0xFFA8B3C7)
-    val Acento = Color(0xFFFCA12C)
-    val Bien = Color(0xFF38C98A)
-    val Aviso = Color(0xFFE6B422)
-    val Mal = Color(0xFFF0646E)
+    val Fondo = Color(0xFF202020)
+    val Panel = Color(0xFF2A2A2A)
+    val PanelFoco = Color(0xFF363636)
+    val Lateral = Color(0xFF1B1B1B)
+    val Linea = Color(0xFF4B4B4B)
+    val Texto = Color(0xFFF4F4F4)
+    val Apagado = Color(0xFFA0A0A0)
+    val Acento = Color(0xFFC6F24E)
+    val Bien = Color(0xFF7FE0A8)
+    val Aviso = Color(0xFFF0C64A)
+    val Mal = Color(0xFFFF6B6E)
 }
 
-/** Verdadero dentro de una fila que tiene el foco: la fila se pone blanca y la letra, oscura. */
-val LocalEnFoco = androidx.compose.runtime.compositionLocalOf { false }
-
-/** Tintas que se oscurecen solas cuando la fila está enfocada (fondo blanco). */
-object Tinta {
-    val texto: Color @Composable get() = if (LocalEnFoco.current) Color(0xFF0B1220) else Colores.Texto
-    val suave: Color @Composable get() = if (LocalEnFoco.current) Color(0xFF4A5873) else Colores.Apagado
-    val acento: Color @Composable get() = if (LocalEnFoco.current) Color(0xFFB86A00) else Colores.Acento
-}
-
-/** Un color de estado (verde, ámbar, rojo) que se oscurece en una fila enfocada para que se lea sobre blanco. */
-@Composable
-fun Color.enFila(): Color = if (LocalEnFoco.current) androidx.compose.ui.graphics.lerp(this, Color.Black, 0.45f) else this
-
-/** Cuadrado de color con las iniciales, como los carteles de HomeTV: el tono sale del nombre. */
-@Composable
-fun Monograma(titulo: String, tam: androidx.compose.ui.unit.Dp = 44.dp) {
-    val palabras = titulo.trim().split(' ', '-', '–').filter { it.isNotEmpty() }
-    val ini = when {
-        palabras.isEmpty() -> "?"
-        palabras.size == 1 -> palabras[0].take(2)
-        else -> "" + palabras[0].first() + palabras[1].first()
-    }.uppercase()
-    val h = (kotlin.math.abs(titulo.lowercase().hashCode()) % 360).toFloat()
-    Box(
-        Modifier.size(tam).clip(RoundedCornerShape(tam / 4)).background(
-            androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color.hsl(h, 0.48f, 0.34f), Color.hsl((h + 40f) % 360f, 0.52f, 0.18f)))
-        ),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(ini, fontSize = (tam.value * 0.38f).sp, fontWeight = FontWeight.Bold, color = Color.hsl(h, 0.7f, 0.9f))
-    }
-}
-
-/** Una fila que se elige con el mando: con el foco se pone blanca (letra oscura) y con sombra; OK = [onClick]. */
+/** Una fila como `.row-btn` de HomeTV: fondo gris, y con el foco borde verde y fondo algo más claro. Sin sombras: así va fluido. */
 @Composable
 fun Fila(
     onClick: () -> Unit,
@@ -108,21 +73,57 @@ fun Fila(
 ) {
     val fuente = remember { MutableInteractionSource() }
     val foco by fuente.collectIsFocusedAsState()
-    val forma = RoundedCornerShape(22.dp)
-    androidx.compose.runtime.CompositionLocalProvider(LocalEnFoco provides foco) {
-        Row(
-            modifier
-                .then(if (foco) Modifier.shadow(18.dp, forma) else Modifier)
-                .clip(forma)
-                .background(if (foco) Color.White else if (seleccionada) Color.White.copy(alpha = 0.10f) else Color.Transparent)
-                .clickable(interactionSource = fuente, indication = null, onClick = onClick)
-                .padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            content = contenido,
-        )
+    val forma = RoundedCornerShape(14.dp)
+    Row(
+        modifier
+            .clip(forma)
+            .background(if (foco) Colores.PanelFoco else Colores.Panel)
+            .border(2.dp, if (foco) Colores.Acento else if (seleccionada) Colores.Linea else Color.Transparent, forma)
+            .clickable(interactionSource = fuente, indication = null, onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        content = contenido,
+    )
+}
+
+/** Selector en píldora (`.sel`/`.chip` de HomeTV): borde gris; el elegido en verde; con el foco, blanco con letra oscura. */
+@Composable
+fun Chip(texto: String, elegido: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier, tam: Int = 16) {
+    val fuente = remember { MutableInteractionSource() }
+    val foco by fuente.collectIsFocusedAsState()
+    val forma = RoundedCornerShape(999.dp)
+    Row(
+        modifier
+            .clip(forma)
+            .background(if (foco) Color.White else Color.Transparent)
+            .border(2.dp, if (foco) Color.White else if (elegido) Colores.Acento else Colores.Linea, forma)
+            .clickable(interactionSource = fuente, indication = null, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 7.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(texto, fontSize = tam.sp, color = if (foco) Colores.Fondo else if (elegido) Colores.Acento else Colores.Apagado, fontWeight = if (elegido || foco) FontWeight.SemiBold else FontWeight.Normal)
     }
 }
 
+/** Fila de Ajustes (`.srow`): el nombre a la izquierda y, a la derecha, el valor en verde. */
+@Composable
+fun FilaAjuste(etiqueta: String, valor: String, onClick: () -> Unit, modifier: Modifier = Modifier, peligro: Boolean = false, colorValor: Color = Colores.Acento) {
+    Fila(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+        Text(etiqueta, fontSize = 19.sp, color = if (peligro) Colores.Mal else Colores.Texto, modifier = Modifier.weight(1f), maxLines = 2)
+        if (valor.isNotEmpty()) Text(valor, fontSize = 18.sp, color = colorValor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 380.dp).padding(start = 16.dp))
+    }
+}
+
+/** Título de grupo en Ajustes (`.settings h3`). */
+@Composable
+fun TituloAjustes(texto: String) {
+    Text(texto.uppercase(), fontSize = 14.sp, color = Colores.Apagado, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, modifier = Modifier.padding(top = 16.dp, bottom = 2.dp, start = 6.dp))
+}
+
+/**
+ * Campo de texto pensado para el mando: se ve como una fila, y solo al pulsar OK se convierte en campo y sale el teclado.
+ * Así el teclado no aparece solo cada vez que el foco pasa por encima.
+ */
 @Composable
 fun CampoTexto(
     valor: String,
@@ -147,12 +148,12 @@ fun CampoTexto(
             value = valor,
             onValueChange = alCambiar,
             singleLine = true,
-            textStyle = TextStyle(color = Colores.Texto, fontSize = 20.sp, fontFamily = Cuerpo),
+            textStyle = TextStyle(color = Colores.Texto, fontSize = 20.sp, fontFamily = Outfit),
             cursorBrush = SolidColor(Colores.Acento),
             keyboardOptions = KeyboardOptions(keyboardType = teclado, imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = { editando = false; alAceptar() }),
             modifier = modifier
-                .background(Colores.Panel, RoundedCornerShape(10.dp))
+                .background(Colores.Panel, RoundedCornerShape(14.dp))
                 .border(2.dp, Colores.Acento, RoundedCornerShape(10.dp))
                 .padding(horizontal = 16.dp, vertical = 12.dp)
                 .focusRequester(pedirCampo)
