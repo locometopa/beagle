@@ -126,11 +126,11 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 ## 10. Listas e importar (`importer.js`)
 
 - [ ] Importar: exportación de AceList (JSON), M3U, enlaces `acestream://` sueltos, texto pegado
-- [ ] Importar desde una dirección web y guardarla como fuente para actualizarla
-- [ ] Listas con nombre; pantalla Listas: activar, desactivar, ver canales, renombrar, quitar
-- [ ] Varias fuentes con interruptor; actualizar las fuentes al abrir (`refreshSources`)
+- [~] Importar desde una dirección web y guardarla como fuente para actualizarla
+- [~] Listas con nombre; pantalla Listas: activar, desactivar, renombrar (falta: ver canales y quitar)
+- [~] Varias fuentes con interruptor; actualizar las fuentes al abrir (`refreshSources`)
 - [ ] Lista TDTChannels incluida de serie, desactivada
-- [ ] Listas Xtream, W3U y MylinkPaste (las resuelve el servidor: `POST /api/lista`)
+- [~] Listas Xtream, W3U y MylinkPaste (las resuelve el servidor: `POST /api/lista`)
 - [ ] Reglas de las listas que llegan del servidor (`reglas.js`)
 - [ ] Exportar en formato AceList (JSON) o M3U
 

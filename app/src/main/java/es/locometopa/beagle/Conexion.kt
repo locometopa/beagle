@@ -105,6 +105,72 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         Servidor.favorito(ajustes.servidor, canal, poner)
     }
 
+    /** Una lista de canales, tal como está en los datos compartidos. */
+    class Lista(val id: String, val nombre: String, val encendida: Boolean, val canales: Int, val deSerie: Boolean)
+
+    /** Las listas que hay en la copia local, con cuántos canales trae cada una. */
+    fun listas(): List<Lista> {
+        val datos = local.leer()?.datos ?: return emptyList()
+        val cuenta = HashMap<String, Int>()
+        datos.optJSONArray("channels")?.let { cs ->
+            for (i in 0 until cs.length()) {
+                val ls = cs.optJSONObject(i)?.optJSONArray("listas") ?: continue
+                for (j in 0 until ls.length()) { val id = ls.optString(j, ""); if (id.isNotEmpty()) cuenta[id] = (cuenta[id] ?: 0) + 1 }
+            }
+        }
+        val fuentes = datos.optJSONArray("sources") ?: return emptyList()
+        return (0 until fuentes.length()).mapNotNull { i ->
+            val f = fuentes.optJSONObject(i) ?: return@mapNotNull null
+            val id = f.optString("id", "")
+            if (id.isEmpty()) null else Lista(id, f.optString("name", "").ifEmpty { "Lista sin nombre" }, f.optBoolean("enabled", true), cuenta[id] ?: 0, f.optBoolean("builtin", false))
+        }
+    }
+
+    /**
+     * Cambia algo de una lista (encenderla, apagarla, renombrarla) y lo sube al servidor.
+     * Si otra tele guardó antes, se carga lo suyo y se repite el cambio encima, hasta tres veces.
+     */
+    suspend fun modificarLista(id: String, cambio: (org.json.JSONObject) -> Unit) = withContext(Dispatchers.IO) {
+        val equipo = servidorOError()
+        val ident = ajustes.identidad()
+        var copia = local.leer() ?: throw java.io.IOException("Aún no hay datos de la tele: abre Ajustes para sincronizar")
+        repeat(3) {
+            val fuentes = copia.datos.optJSONArray("sources") ?: throw java.io.IOException("No hay listas")
+            var hecho = false
+            for (i in 0 until fuentes.length()) {
+                val f = fuentes.optJSONObject(i)
+                if (f != null && f.optString("id", "") == id) { cambio(f); hecho = true }
+            }
+            if (!hecho) throw java.io.IOException("Esa lista ya no existe")
+            when (val r = Servidor.guardarSincro(equipo, ident, copia.rev, copia.datos, copia.ligero)) {
+                is Guardado.Hecho -> {
+                    local.guardar(Copia(r.rev, copia.datos, copia.ligero))
+                    // Al encender una lista, el servidor tiene canales que esta tele aún no recibió: se piden
+                    if (r.recargar) {
+                        val s = Servidor.leerSincro(equipo, ident, 0, ajustes.sincroLigero)
+                        s.datos?.let { local.guardar(Copia(s.rev, it, s.ligero)) }
+                    }
+                    return@withContext
+                }
+                is Guardado.Conflicto -> {
+                    val d = r.actual.datos ?: throw java.io.IOException("El servidor no ha devuelto datos")
+                    copia = Copia(r.actual.rev, d, r.actual.ligero)
+                    local.guardar(copia)
+                }
+            }
+        }
+        throw java.io.IOException("Otra tele está cambiando lo mismo; prueba otra vez")
+    }
+
+    /** Añade una lista desde una dirección web (la baja el servidor) y refresca la copia local. */
+    suspend fun anadirLista(nombre: String, url: String): Servidor.ListaAnadida = withContext(Dispatchers.IO) {
+        val equipo = servidorOError()
+        val r = Servidor.anadirLista(equipo, nombre.trim().ifEmpty { "Lista" }, url.trim())
+        val s = Servidor.leerSincro(equipo, ajustes.identidad(), 0, ajustes.sincroLigero)
+        s.datos?.let { local.guardar(Copia(s.rev, it, s.ligero)) }
+        r
+    }
+
     suspend fun carpetas(): List<Carpeta> = withContext(Dispatchers.IO) { Servidor.carpetas(servidorOError()) }
     suspend fun listarCarpeta(id: String, sub: String): Listado = withContext(Dispatchers.IO) { Servidor.listarCarpeta(servidorOError(), id, sub) }
     suspend fun cambiarVpn(usar: String) = withContext(Dispatchers.IO) { Servidor.cambiarVpn(servidorOError(), usar) }

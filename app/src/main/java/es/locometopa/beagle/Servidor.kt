@@ -227,6 +227,21 @@ object Servidor {
         return Listado(carpetas, videos)
     }
 
+    // --- Listas ---
+
+    /** Resultado de añadir una lista: cómo se llama y cuántos canales nuevos trajo. */
+    class ListaAnadida(val nombre: String, val creados: Int)
+
+    /**
+     * Pide al servidor que baje una lista desde [url] (M3U, JSON de AceList, Xtream, MylinkPaste) y la añada a lo compartido.
+     * Lo hace el servidor, así que sirve cualquier dirección que él alcance. Puede tardar hasta un minuto.
+     */
+    fun anadirLista(equipo: String, nombre: String, url: String): ListaAnadida {
+        val cuerpo = JSONObject().put("nombre", nombre).put("url", url).toString()
+        val r = pedirJson(casa(equipo) + "/api/lista", 120000, "POST", cuerpo)
+        return ListaAnadida(r.optString("fuente", nombre), r.optInt("creados", 0))
+    }
+
     // --- VPN del servidor ---
 
     /** Pide al servidor cambiar su VPN: «warp», «proton» o «ninguna». Tarda unos segundos en aplicarse. */
