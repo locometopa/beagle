@@ -111,6 +111,7 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         FilaMotor(conexion)
         FilaVpn(estado, conexion) { comprobar() }
         FilaReproductor(ajustes)
+        FilaDatos(conexion)
         copia?.let { ResumenDatos(it) }
         Text("Beagle ${ajustes.version()}", fontSize = 14.sp, color = Apagado)
     }
@@ -230,4 +231,41 @@ private fun FilaVpn(estado: Estado, conexion: Conexion, recomprobar: () -> Unit)
         }
         mensaje?.let { (bien, texto) -> Text(texto, fontSize = 15.sp, color = if (bien) Aviso else Mal) }
     }
+}
+
+/** Copias de seguridad en el servidor, limpiar la caché de la app y empezar de cero en esta tele. */
+@Composable
+private fun FilaDatos(conexion: Conexion) {
+    val contexto = androidx.compose.ui.platform.LocalContext.current
+    val alcance = rememberCoroutineScope()
+    var mensaje by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
+    var seguro by remember { mutableStateOf(false) }
+    Text("Datos", fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Button(onClick = {
+            mensaje = true to "Guardando la copia en el servidor…"
+            alcance.launch {
+                mensaje = try { true to "Copia guardada: " + conexion.copiaAhora() } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
+            }
+        }) { Text("Copia de seguridad ahora") }
+        Button(onClick = {
+            alcance.launch {
+                mensaje = try {
+                    val c = conexion.copias()
+                    true to if (c.isEmpty()) "Aún no hay copias" else "Copias (${c.size}): " + c.take(4).joinToString(" · ")
+                } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
+            }
+        }) { Text("Ver copias") }
+        Button(onClick = {
+            val n = try { contexto.cacheDir.deleteRecursively() } catch (e: Exception) { false }
+            mensaje = true to if (n) "Caché limpia" else "No había nada que limpiar"
+        }) { Text("Limpiar caché") }
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Button(onClick = {
+            if (!seguro) { seguro = true; mensaje = false to "Pulsa otra vez «Empezar de cero» para borrar lo guardado en esta tele (el servidor no se toca)" }
+            else { seguro = false; conexion.empezarDeCero(); mensaje = true to "Hecho: cierra y abre la app para volver a cargarlo todo del servidor" }
+        }) { Text(if (seguro) "¿Seguro? Pulsa otra vez" else "Empezar de cero") }
+    }
+    mensaje?.let { (bien, t) -> Text(t, fontSize = 16.sp, color = if (bien) Bien else Aviso) }
 }

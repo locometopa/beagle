@@ -242,6 +242,40 @@ object Servidor {
         return ListaAnadida(r.optString("fuente", nombre), r.optInt("creados", 0))
     }
 
+    /** Graba un canal en el servidor (empieza ya, dura [minutos]). Devuelve el id de la grabación. */
+    fun grabar(equipo: String, canal: Canal, minutos: Int): String {
+        val enl = org.json.JSONArray()
+        for (e in canal.enlaces.take(6)) enl.put(if (e.directo) JSONObject().put("url", e.url) else JSONObject().put("id", e.id))
+        val cuerpo = JSONObject().put("titulo", canal.titulo).put("canal", canal.titulo).put("enlaces", enl).put("minutos", minutos).toString()
+        return pedirJson(casa(equipo) + "/api/grabar", 20000, "POST", cuerpo).optString("id", "")
+    }
+
+    /** Canales de las listas apagadas del servidor que se llaman como [q]: (nombre del canal, listas donde está). */
+    fun buscarApagados(equipo: String, q: String): List<Pair<String, String>> {
+        val a = pedirJson(casa(equipo) + "/api/buscar-canal?q=" + URLEncoder.encode(q, "UTF-8"), 15000).optJSONArray("items") ?: return emptyList()
+        return (0 until a.length()).mapNotNull { i ->
+            val o = a.optJSONObject(i) ?: return@mapNotNull null
+            val ls = o.optJSONArray("listas")
+            val nombres = if (ls == null) "" else (0 until ls.length()).joinToString(", ") { ls.optJSONObject(it)?.optString("name", "") ?: "" }
+            o.optString("title", "") to nombres
+        }
+    }
+
+    /** Pide al servidor guardar una copia de seguridad de lo compartido (con todos los datos, no los ligeros). Devuelve su nombre. */
+    fun copiaAhora(equipo: String, id: Identidad): String {
+        val s = leerSincro(equipo, id, 0, false)
+        val datos = s.datos ?: throw IOException("El servidor aún no tiene datos que copiar")
+        datos.put("manual", true)
+        val r = pedirJson(casa(equipo) + "/copia", 60000, "PUT", datos.toString())
+        return r.optString("nombre", r.optString("omitida", "hecha"))
+    }
+
+    /** Nombres de las copias que guarda el servidor, la más reciente primero. */
+    fun copias(equipo: String): List<String> {
+        val a = org.json.JSONArray(pedir(casa(equipo) + "/copias", 10000))
+        return (0 until a.length()).map { a.optJSONObject(it)?.optString("nombre", "") ?: a.optString(it) }.filter { it.isNotEmpty() }
+    }
+
     // --- VPN del servidor ---
 
     /** Pide al servidor cambiar su VPN: «warp», «proton» o «ninguna». Tarda unos segundos en aplicarse. */

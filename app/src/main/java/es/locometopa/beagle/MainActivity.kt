@@ -164,7 +164,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                     Seccion.Canales -> PantallaCanales(datos)
                     Seccion.Agenda -> PantallaAgenda(datos)
                     Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
-                    Seccion.Buscar -> PantallaBuscar(datos)
+                    Seccion.Buscar -> PantallaBuscar(datos, conexion)
                     Seccion.Ajustes -> PantallaAjustes(conexion, ajustes, servidorVacio) { recargar() }
                 }
             }

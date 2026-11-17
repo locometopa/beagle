@@ -653,6 +653,10 @@ class ReproductorActivity : Activity() {
             textos.add("◧  Cambiar a formato " + if (formato == "hls") "TS (continuo)" else "HLS (troceado)")
             acciones.add { alternarFormato() }
         }
+        if (true) {
+            textos.add("⏺  Grabar este canal en el servidor…")
+            acciones.add { menuGrabar(canal) }
+        }
         textos.add("⟳  Volver a cargar el canal")
         acciones.add {
             reintentos = 0
@@ -668,6 +672,21 @@ class ReproductorActivity : Activity() {
         textos.add("←  Salir a la lista de canales")
         acciones.add { finish() }
         dialogo(canal.titulo, textos) { acciones[it]() }.show()
+    }
+
+    private fun menuGrabar(canal: Canal) {
+        val minutos = listOf(30, 60, 90, 120, 180)
+        dialogo("Grabar ${canal.titulo}", minutos.map { "$it minutos" }) { i ->
+            Thread {
+                var error = ""
+                try { Servidor.grabar(equipo, canal, minutos[i]) } catch (e: Exception) { error = e.message ?: "sin conexión con el servidor" }
+                ui.post {
+                    if (isFinishing || isDestroyed) return@post
+                    txtEstado.text = if (error.isEmpty()) "⏺ Grabando ${minutos[i]} min en el servidor (míralo en Vídeos › Grabaciones)" else "No se ha podido grabar: $error"
+                    mostrarPanel(5000)
+                }
+            }.start()
+        }.show()
     }
 
     private fun menuEnlaces() {

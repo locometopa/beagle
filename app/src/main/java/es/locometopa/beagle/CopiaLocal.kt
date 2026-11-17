@@ -48,6 +48,9 @@ class CopiaLocal(private val contexto: Context) {
 
     private val simple = File(contexto.filesDir, "simple.json")
 
+    /** Borra las copias locales: la próxima vez se vuelve a pedir todo al servidor. */
+    fun borrarTodo() { archivo.delete(); simple.delete() }
+
     /** Última lista de canales agrupados (/api/simple), tal como la dio el servidor. Null si no hay. */
     fun leerSimple(): String? = try { if (simple.exists()) simple.readText(Charsets.UTF_8) else null } catch (e: Exception) { null }
 

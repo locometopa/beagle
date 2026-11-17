@@ -30,7 +30,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Sincronización ligera: no guardar en la tele los canales de listas apagadas (`sincroLigero`)
 - [~] Darse de alta como tele en el servidor (sale en el panel, en «Teles») y decir qué se está viendo
 - [~] Bloqueo de la tele desde el servidor (`GET /bloqueo`): cierra el reproductor si se bloquea
-- [ ] Copias de seguridad en el servidor (`PUT /copia`, `GET /copias`) y restaurar
+- [~] Copias de seguridad en el servidor (`PUT /copia`, `GET /copias`) (falta restaurar)
 - [ ] Uso fuera de casa por Tailscale (dirección `100.x` o `.ts.net`)
 
 ## 2. Motor de Ace Stream
@@ -59,7 +59,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Calidad ligera fuera de casa (`/aac/abrir?calidad=baja`)
 - [ ] Canales IPTV por la pasarela VPN del servidor (`tvPorVpn`)
 - [ ] Apuntar el resultado de cada enlace (arrancó o no, peers) para ordenar mejor después
-- [ ] Grabar el canal en el servidor (`/api/grabar`), indicador REC y parar la grabación
+- [~] Grabar el canal en el servidor (`/api/grabar`) desde las opciones del reproductor (falta indicador REC)
 - [ ] Vídeos de carpetas: pausa, saltos de 10 s / 1 min, pasar al siguiente al terminar
 - [ ] Gestos en el móvil: deslizar para canal y enlace, tocar, doble toque, mantener pulsado
 - [~] Cerrar el canal y liberar el motor al salir
@@ -97,8 +97,8 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [ ] Logotipos de los canales (`logos`)
 - [~] Nombres limpios: los `_` pasan a espacios
 - [~] Enlaces repetidos agrupados en un canal («3 enlaces»); OK reproduce el mejor (`agrupar`, `agenda.js: claveCanal`)
-- [ ] Filtros: vivos, favoritos, sin comprobar, caídos; por categoría; por lista
-- [ ] Orden recomendado y otros órdenes (`orden`)
+- [~] Filtros: vivos, sin caídos, caídos; por categoría (falta por lista)
+- [~] Orden recomendado y A-Z
 - [ ] Ocultar los caídos (`hideDead`)
 - [ ] Ficha del canal y ajuste «OK abre la ficha o reproduce» (`okAction`)
 - [ ] Opciones del canal (pulsación larga o ⋮): favorito, renombrar, categoría, ver enlaces, borrar, juntar o separar
@@ -108,8 +108,8 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 ## 8. Buscar
 
 - [~] Buscar canales con teclado cómodo para el mando
-- [ ] Buscar también eventos de la agenda
-- [ ] Buscar en las listas apagadas (`GET /api/buscar-canal`)
+- [~] Buscar también eventos de la agenda
+- [~] Buscar en las listas apagadas (`GET /api/buscar-canal`)
 
 ## 9. Agenda deportiva (`agenda.js`)
 
@@ -168,8 +168,8 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 - [ ] Pantalla de ajustes que cambia con OK, sin desplegables ni teclado
 - [ ] Todos los ajustes de `store.js: defaultSettings` (los que no estén ya marcados arriba)
-- [ ] Limpiar la caché de la app
-- [ ] «Empezar de cero» y restaurar desde una copia
+- [~] Limpiar la caché de la app
+- [~] «Empezar de cero» (falta restaurar desde una copia)
 
 ## 16. Actualizaciones
 
