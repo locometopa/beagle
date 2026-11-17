@@ -237,3 +237,25 @@ fun PildoraEstado(texto: String, color: Color, modifier: Modifier = Modifier) {
         Text(texto, fontSize = 16.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 10.dp))
     }
 }
+
+
+/** Logo de un canal en un recuadro; si no hay o no carga, sus iniciales sobre un color propio. */
+@Composable
+fun LogoCanal(titulo: String, categoria: String, url: String, modifier: Modifier = Modifier) {
+    val tono = ((titulo.ifEmpty { categoria }).fold(0) { h, ch -> (h * 31 + ch.code) % 360 }).toFloat()
+    val fondo = androidx.compose.ui.graphics.Color.hsv(tono, 0.45f, 0.38f)
+    val iniciales = titulo.split(" ").filter { it.isNotEmpty() && it[0].isLetterOrDigit() }.take(2).joinToString("") { it.take(1).uppercase() }.ifEmpty { "·" }
+    val letras = @Composable {
+        Box(Modifier.fillMaxSize().background(fondo, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+            Text(iniciales, fontSize = 15.sp, color = Colores.Texto, fontWeight = FontWeight.Bold)
+        }
+    }
+    Box(modifier.background(androidx.compose.ui.graphics.Color.White.copy(alpha = if (url.isNotEmpty()) 0.92f else 0f), RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+        if (url.isEmpty()) letras()
+        else coil.compose.SubcomposeAsyncImage(
+            model = url, contentDescription = null, contentScale = androidx.compose.ui.layout.ContentScale.Fit,
+            modifier = Modifier.fillMaxSize().padding(3.dp),
+            loading = { letras() }, error = { letras() },
+        )
+    }
+}

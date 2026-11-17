@@ -142,9 +142,11 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
     // «cambios» sube al marcar un favorito para que la fila se vuelva a dibujar
     val fav = if (cambios >= 0) c.favorito else false
     val (estado, colorEstado) = estadoTexto(c)
+    val usarLogos = remember { Ajustes(contexto.applicationContext).logos }
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Fila(onClick = { abrirReproductor(contexto, lista, lista.indexOf(c)) }, modifier = Modifier.weight(1f)) {
             Box(Modifier.width(12.dp).height(12.dp).background(Color(colorEstado), RoundedCornerShape(6.dp)))
+            if (usarLogos) LogoCanal(c.titulo, c.categoria, c.logo, Modifier.padding(start = 12.dp).width(46.dp).height(32.dp))
             Column(Modifier.padding(start = 14.dp).weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (fav) Text("★ ", fontSize = 19.sp, color = Colores.Acento)

@@ -169,6 +169,9 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             mostrarPanelMovil(contexto) { movil = PanelMovil.activo }
         })
 
+        var logos by remember { mutableStateOf(ajustes.logos) }
+        FilaAjuste("Logos de los canales", if (logos) "Sí" else "No (más ligero)", { logos = !logos; ajustes.logos = logos; mensaje = true to "Se aplica al volver a Canales" })
+
         var alAbrir by remember { mutableStateOf(ajustes.comprobarAlAbrir) }
         FilaAjuste("Comprobar los canales al abrir la app", if (alAbrir) "Sí" else "No", { alAbrir = !alAbrir; ajustes.comprobarAlAbrir = alAbrir })
 

@@ -88,14 +88,30 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
     }
 
     /** Canales ya agrupados que guardó la última vez la tele, para abrir al instante. Null si no hay. */
-    fun catalogoLocal(): Catalogo? = try { local.leerSimple()?.let { Modelo.leer(it) } } catch (e: Exception) { null }
+    fun catalogoLocal(): Catalogo? = try { local.leerSimple()?.let { conLogos(Modelo.leer(it)) } } catch (e: Exception) { null }
+
+    /** Pone a cada canal el logo que traen sus enlaces en los datos compartidos (el servidor no lo manda en /api/simple). */
+    private fun conLogos(c: Catalogo): Catalogo {
+        try {
+            val cs = local.leer()?.datos?.optJSONArray("channels") ?: return c
+            val logos = HashMap<String, String>()
+            for (i in 0 until cs.length()) {
+                val o = cs.optJSONObject(i) ?: continue
+                val l = o.optString("logo", "")
+                if (l.startsWith("http")) logos[o.optString("id", "")] = l
+            }
+            if (logos.isEmpty()) return c
+            for (canal in c.canales) canal.logo = canal.enlaces.firstNotNullOfOrNull { logos[it.id] } ?: ""
+        } catch (e: Exception) { /* sin logos */ }
+        return c
+    }
 
     /** Pide los canales agrupados al servidor y los guarda. Lanza si el servidor no responde. */
     suspend fun cargarCatalogo(): Catalogo = withContext(Dispatchers.IO) {
         val equipo = ajustes.servidor
         if (equipo.isEmpty()) throw java.io.IOException("Falta la dirección del servidor de casa")
         val texto = Servidor.pedir(Servidor.casa(equipo) + "/api/simple", 30000)
-        val c = Modelo.leer(texto)
+        val c = conLogos(Modelo.leer(texto))
         local.guardarSimple(texto)
         c
     }

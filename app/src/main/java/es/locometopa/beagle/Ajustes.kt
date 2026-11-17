@@ -73,6 +73,10 @@ class Ajustes(private val contexto: Context) {
         get() = sp.getInt("movilPuerto", 8095)
         set(v) = sp.edit().putInt("movilPuerto", v).apply()
 
+    var logos: Boolean
+        get() = sp.getBoolean("logos", true)
+        set(v) = sp.edit().putBoolean("logos", v).apply()
+
     var comprobarAlAbrir: Boolean
         get() = sp.getBoolean("comprobarAlAbrir", false)
         set(v) = sp.edit().putBoolean("comprobarAlAbrir", v).apply()

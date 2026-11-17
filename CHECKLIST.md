@@ -94,7 +94,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 - [ ] Vista en lista (por defecto) y en cuadrícula
 - [~] Estado de cada canal (vivo, sin peers, no encontrado, sin comprobar), peers y fecha de comprobación
-- [ ] Logotipos de los canales (`logos`)
+- [~] Logotipos de los canales (ajuste `logos`, iniciales si no cargan) (0.23.0)
 - [~] Nombres limpios: los `_` pasan a espacios
 - [~] Enlaces repetidos agrupados en un canal («3 enlaces»); OK reproduce el mejor (`agrupar`, `agenda.js: claveCanal`)
 - [~] Filtros: vivos, sin caídos, caídos; por categoría y por lista (0.19.1)
@@ -146,14 +146,14 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 12. Panel del móvil (`ServidorMovil.java`, `www/movil/`)
 
-- [ ] Servidor en la tele (puerto 8095) con clave de 6 caracteres
-- [ ] Botón «Móvil»: código QR y dirección corta
-- [ ] Página del móvil servida por la tele
+- [~] Servidor en la tele (puerto 8095) con clave de 6 caracteres
+- [~] Botón «Móvil»: código QR y dirección corta
+- [~] Página del móvil servida por la tele
 - [~] Controlar desde el móvil: servidor en la tele (puerto 8095), clave, código QR y la misma página de HomeTV (0.22.0)
 - [~] Panel de gestión del servidor de casa (puerto 8096): Ajustes muestra la dirección
-- [ ] Desde el móvil: importar listas o archivos, renombrar, cambiar categoría, favoritos, borrar, comprobar
-- [ ] Desde el móvil: mandar un canal a reproducir en la tele
-- [ ] Desde el móvil: listas (activar, actualizar, renombrar, borrar), ajustes, agenda, exportar
+- [~] Desde el móvil: importar listas o archivos, renombrar, cambiar categoría, favoritos, borrar, comprobar
+- [~] Desde el móvil: mandar un canal a reproducir en la tele
+- [~] Desde el móvil: listas (activar, actualizar, renombrar, borrar), ajustes, agenda, exportar
 
 ## 13. Carpetas y grabaciones del servidor
 

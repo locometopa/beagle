@@ -34,6 +34,9 @@ class Canal(
     /** Los enlaces, con los que funcionan primero (dentro de cada grupo, en el orden del servidor). */
     val enlaces: List<Enlace> = enlaces.sortedBy { it.orden }
     val buscable: String = Modelo.sinTildes(titulo)
+
+    /** Dirección de la imagen del logo (de los datos compartidos), o vacío. */
+    var logo: String = ""
     val estado: Int get() = enlaces.firstOrNull()?.orden ?: 2
 }
 
