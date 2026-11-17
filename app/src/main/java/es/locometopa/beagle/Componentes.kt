@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
@@ -102,6 +104,43 @@ fun Chip(texto: String, elegido: Boolean, onClick: () -> Unit, modifier: Modifie
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Text(texto, fontSize = tam.sp, color = if (foco) Colores.Fondo else if (elegido) Colores.Acento else Colores.Apagado, fontWeight = if (elegido || foco) FontWeight.SemiBold else FontWeight.Normal)
+    }
+}
+
+/** Tarjeta con el foco del mando para las filas horizontales de Inicio (`.tarjeta` de HomeTV). */
+@Composable
+fun Tarjeta(onClick: () -> Unit, ancho: androidx.compose.ui.unit.Dp, alto: androidx.compose.ui.unit.Dp, contenido: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
+    val fuente = remember { MutableInteractionSource() }
+    val foco by fuente.collectIsFocusedAsState()
+    val forma = RoundedCornerShape(14.dp)
+    androidx.compose.foundation.layout.Column(
+        Modifier
+            .width(ancho).height(alto)
+            .clip(forma)
+            .background(if (foco) Colores.PanelFoco else Colores.Panel)
+            .border(2.dp, if (foco) Colores.Acento else Color.Transparent, forma)
+            .clickable(interactionSource = fuente, indication = null, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween,
+        content = contenido,
+    )
+}
+
+/** Botón en píldora (`.hbtn`): el principal en verde; con el foco, blanco. */
+@Composable
+fun Boton(texto: String, onClick: () -> Unit, principal: Boolean = false, modifier: Modifier = Modifier) {
+    val fuente = remember { MutableInteractionSource() }
+    val foco by fuente.collectIsFocusedAsState()
+    val forma = RoundedCornerShape(999.dp)
+    Row(
+        modifier
+            .clip(forma)
+            .background(if (foco) Color.White else if (principal) Colores.Acento else Colores.PanelFoco)
+            .clickable(interactionSource = fuente, indication = null, onClick = onClick)
+            .padding(horizontal = 22.dp, vertical = 9.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(texto, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = if (foco || principal) Colores.Fondo else Colores.Texto)
     }
 }
 

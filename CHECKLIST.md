@@ -87,7 +87,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [ ] Cuadrados de eventos destacados del día (`destacados`: 0–3)
 - [~] Filas: en directo, a continuación, favoritos y una por deporte; lo que se puede ver, primero
 - [ ] Filas por categoría de canales (`filasCategorias`)
-- [~] Inicio en modo lista compacta (`inicioLista`)
+- [~] Inicio como HomeTV: destacado arriba y filas de tarjetas que se recorren de lado (0.18.1)
 - [~] Canales vistos hace poco (`vistos`)
 
 ## 7. Canales
