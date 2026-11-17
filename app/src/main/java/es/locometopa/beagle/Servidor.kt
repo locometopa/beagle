@@ -245,6 +245,13 @@ object Servidor {
         return ListaAnadida(r.optString("fuente", nombre), r.optInt("creados", 0))
     }
 
+    /** Añade una lista desde texto pegado (M3U, JSON de AceList o enlaces acestream:// sueltos). */
+    fun anadirListaTexto(equipo: String, nombre: String, texto: String): ListaAnadida {
+        val cuerpo = JSONObject().put("nombre", nombre).put("texto", texto).toString()
+        val r = pedirJson(casa(equipo) + "/api/lista", 120000, "POST", cuerpo)
+        return ListaAnadida(r.optString("fuente", nombre), r.optInt("creados", 0))
+    }
+
     /** Graba un canal en el servidor (empieza ya, dura [minutos]). Devuelve el id de la grabación. */
     fun grabar(equipo: String, canal: Canal, minutos: Int): String {
         val enl = org.json.JSONArray()

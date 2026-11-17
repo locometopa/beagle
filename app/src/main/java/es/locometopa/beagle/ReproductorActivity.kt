@@ -156,6 +156,7 @@ class ReproductorActivity : Activity() {
         vista.player = player
         player.addListener(escucha)
         listo = true
+        ui.postDelayed(relojVideo, 1000)
         cargar(nuevo = true)
     }
 
@@ -165,6 +166,7 @@ class ReproductorActivity : Activity() {
                 txtEstado.text = "Cargando…"
                 if (yaSonando) { ui.removeCallbacks(vigilante); ui.postDelayed(vigilante, 25000) }
             }
+            if (estado == Player.STATE_ENDED && esVideo() && indice < canales.size - 1) zap(1)
             if (estado == Player.STATE_READY) {
                 reintentos = 0
                 vueltas = 0
@@ -269,7 +271,8 @@ class ReproductorActivity : Activity() {
     }
 
     private fun ayuda(): String =
-        if (esTele) "▲▼ canal  ·  ◀▶ enlace  ·  OK información  ·  mantén OK: opciones  ·  Atrás: salir"
+        if (esTele && esVideo()) "◀▶ ±10 s  ·  ▲▼ ±1 min  ·  OK pausa  ·  mantén OK: opciones  ·  Atrás: salir"
+        else if (esTele) "▲▼ canal  ·  ◀▶ enlace  ·  OK información  ·  mantén OK: opciones  ·  Atrás: salir"
         else "Desliza ↑↓ canal  ·  ←→ enlace  ·  Toca: información  ·  Mantén pulsado: opciones"
 
     /** Móvil: gestos con el dedo en lugar del mando. */
@@ -296,6 +299,35 @@ class ReproductorActivity : Activity() {
         val g = gestos
         if (g != null && listo) g.onTouchEvent(ev)
         return super.dispatchTouchEvent(ev)
+    }
+
+    /** Los vídeos de las carpetas del servidor (y las grabaciones) se ven como un vídeo normal: con pausa y saltos. */
+    private fun esVideo(): Boolean = canales.getOrNull(indice)?.clave?.startsWith("carpeta|") == true
+
+    private fun saltar(ms: Long) {
+        val dur = player.duration
+        val nueva = (player.currentPosition + ms).coerceAtLeast(0L)
+        player.seekTo(if (dur != C.TIME_UNSET) nueva.coerceAtMost(dur) else nueva)
+        mostrarPanel(4000)
+        txtEstado.text = posicionTexto()
+    }
+
+    private fun hms(ms: Long): String {
+        val t = ms / 1000
+        return if (t >= 3600) String.format(Locale.ROOT, "%d:%02d:%02d", t / 3600, t / 60 % 60, t % 60) else String.format(Locale.ROOT, "%d:%02d", t / 60, t % 60)
+    }
+
+    private fun posicionTexto(): String {
+        val dur = player.duration
+        return hms(player.currentPosition) + (if (dur != C.TIME_UNSET) " / " + hms(dur) else "") + (if (!player.isPlaying) "   ⏸ en pausa" else "")
+    }
+
+    /** Cada segundo, en los vídeos, pone la posición en el panel. */
+    private val relojVideo = object : Runnable {
+        override fun run() {
+            if (esVideo() && player.playbackState == Player.STATE_READY) txtEstado.text = posicionTexto()
+            ui.postDelayed(this, 1000)
+        }
     }
 
     private fun mostrarPanel(ms: Long) {
@@ -798,10 +830,12 @@ class ReproductorActivity : Activity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (!listo) return super.onKeyDown(keyCode, event)
         when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> zap(-1)
-            KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT -> zap(1)
-            KeyEvent.KEYCODE_DPAD_LEFT -> cambiarFuente(-1)
-            KeyEvent.KEYCODE_DPAD_RIGHT -> cambiarFuente(1)
+            KeyEvent.KEYCODE_DPAD_UP -> if (esVideo()) saltar(60_000) else zap(-1)
+            KeyEvent.KEYCODE_DPAD_DOWN -> if (esVideo()) saltar(-60_000) else zap(1)
+            KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> zap(-1)
+            KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT -> zap(1)
+            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> if (esVideo()) saltar(-10_000) else cambiarFuente(-1)
+            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (esVideo()) saltar(10_000) else cambiarFuente(1)
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_SPACE -> {
                 if (player.isPlaying) player.pause() else player.play()
                 mostrarPanel(3000)
@@ -811,6 +845,9 @@ class ReproductorActivity : Activity() {
                 if (event.repeatCount == 3) {
                     ultimoOk = 0
                     opcionesCanal()
+                } else if (event.repeatCount == 0 && esVideo()) {
+                    if (player.isPlaying) player.pause() else player.play()
+                    mostrarPanel(4000)
                 } else if (event.repeatCount == 0) {
                     val t = System.currentTimeMillis()
                     if (t - ultimoOk < 600) { ultimoOk = 0; recolocar() } else { ultimoOk = t; mostrarPanel(5000) }

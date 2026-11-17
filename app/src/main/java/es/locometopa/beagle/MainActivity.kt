@@ -172,7 +172,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                 when (seccion) {
                     Seccion.Inicio -> PantallaInicio(datos, ajustes) { seccion = Seccion.Ajustes }
                     Seccion.Canales -> PantallaCanales(datos, conexion, ajustes)
-                    Seccion.Agenda -> PantallaAgenda(datos)
+                    Seccion.Agenda -> PantallaAgenda(datos, conexion)
                     Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
                     Seccion.Buscar -> PantallaBuscar(datos, conexion)
                     Seccion.Ajustes -> PantallaAjustes(conexion, ajustes, servidorVacio) { recargar() }

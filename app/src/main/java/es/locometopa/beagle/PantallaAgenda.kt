@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.lazy.items
@@ -85,7 +86,7 @@ fun FilaEvento(e: Evento, cat: Catalogo, onClick: () -> Unit) {
 
 /** Agenda deportiva que da el servidor (ya cruzada con mis canales): filtros en una fila arriba y los eventos en lista, como HomeTV. */
 @Composable
-fun PantallaAgenda(datos: Datos) {
+fun PantallaAgenda(datos: Datos, conexion: Conexion) {
     val contexto = LocalContext.current
     val cat = datos.catalogo
     var filtro by remember { mutableStateOf("Todos") }
@@ -123,9 +124,39 @@ fun PantallaAgenda(datos: Datos) {
         if (filas.isEmpty()) Text("No hay eventos con este filtro.", fontSize = 18.sp, color = Colores.Apagado)
         else LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(filas, key = { if (it is Evento) "e-${it.id}" else "d-$it" }) { f ->
-                if (f is Evento) FilaEvento(f, cat) { abrirEvento(contexto, cat, f) }
+                if (f is Evento) Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f)) { FilaEvento(f, cat) { abrirEvento(contexto, cat, f) } }
+                    if (f.canales.isNotEmpty()) Fila(onClick = { asignarCanal(contexto, datos, conexion, f) }, modifier = Modifier.padding(start = 8.dp)) { Text("⋮", fontSize = 24.sp, color = Colores.Apagado) }
+                }
                 else Text((f as String).uppercase(), fontSize = 15.sp, color = Colores.Acento, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 6.dp))
             }
         }
     }
+}
+
+/** «Asignar canal» a mano: cuando el nombre de la cadena de la agenda no cuadra con mis canales, se elige cuál es. */
+private fun asignarCanal(contexto: Context, datos: Datos, conexion: Conexion, e: Evento) {
+    val cat = datos.catalogo ?: return
+    fun buscar(nombre: String) {
+        val campo = android.widget.EditText(contexto).apply { hint = "Escribe parte del nombre de tu canal"; setSingleLine() }
+        android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            .setTitle("¿Qué canal es «$nombre»?").setView(campo)
+            .setPositiveButton("Buscar") { _, _ ->
+                val encontrados = Modelo.buscar(cat.canales, campo.text.toString()).take(30)
+                if (encontrados.isEmpty()) { android.widget.Toast.makeText(contexto, "Ninguno se llama así", android.widget.Toast.LENGTH_SHORT).show(); return@setPositiveButton }
+                android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("Elige el canal para «$nombre»")
+                    .setItems(encontrados.map { it.titulo }.toTypedArray()) { _, i ->
+                        val ids = encontrados[i].enlaces.map { it.id }.filter { it.isNotEmpty() }
+                        AccionesCanal.alcance?.launch {
+                            try { conexion.asignarAgenda(nombre, ids); datos.recargar(); android.widget.Toast.makeText(contexto, "Hecho: «$nombre» es ${encontrados[i].titulo}", android.widget.Toast.LENGTH_LONG).show() }
+                            catch (x: Exception) { android.widget.Toast.makeText(contexto, x.message ?: "No se ha podido", android.widget.Toast.LENGTH_LONG).show() }
+                        }
+                    }.setNegativeButton("Cancelar", null).show()
+            }.setNegativeButton("Cancelar", null).show()
+    }
+    if (e.canales.size == 1) buscar(e.canales[0])
+    else android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        .setTitle("Asignar canal: ¿de qué cadena?").setItems(e.canales.toTypedArray()) { _, i -> buscar(e.canales[i]) }
+        .setNegativeButton("Cancelar", null).show()
 }

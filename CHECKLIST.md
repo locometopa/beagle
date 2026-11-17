@@ -60,7 +60,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [ ] Canales IPTV por la pasarela VPN del servidor (`tvPorVpn`)
 - [ ] Apuntar el resultado de cada enlace (arrancó o no, peers) para ordenar mejor después
 - [~] Grabar el canal en el servidor (`/api/grabar`) desde las opciones del reproductor, con «⏺ REC» en el rótulo (0.18.3)
-- [ ] Vídeos de carpetas: pausa, saltos de 10 s / 1 min, pasar al siguiente al terminar
+- [~] Vídeos de carpetas: pausa, saltos de 10 s (◀▶) y 1 min (▲▼), siguiente al terminar (0.20.0)
 - [ ] Gestos en el móvil: deslizar para canal y enlace, tocar, doble toque, mantener pulsado
 - [~] Cerrar el canal y liberar el motor al salir
 
@@ -117,7 +117,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [ ] Cruce de la agenda con mis canales por nombre (quita calidades, diales y relleno; respeta números)
 - [ ] Nombres genéricos («DAZN») solo como *posible*
 - [~] «Ver en el mejor canal» y estado de mis canales para cada evento
-- [ ] «Asignar canal» a mano cuando el nombre no cuadra (`agendaMapa`)
+- [~] «Asignar canal» a mano desde el ⋮ del evento (`agendaMapa`) (0.20.0)
 - [~] Filtro «En abierto» (TDT, RTVE Play, autonómicas, YouTube)
 - [~] Eventos en directo y aplazados
 - [ ] Recordatorios / eventos favoritos con aviso (`recordatorios`, `POST /api/recordatorio`)
@@ -125,7 +125,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 ## 10. Listas e importar (`importer.js`)
 
-- [ ] Importar: exportación de AceList (JSON), M3U, enlaces `acestream://` sueltos, texto pegado
+- [~] Importar: texto pegado (M3U, JSON de AceList o enlaces acestream:// sueltos) (0.20.0; falta archivo)
 - [~] Importar desde una dirección web y guardarla como fuente para actualizarla
 - [~] Listas con nombre; pantalla Listas: activar, desactivar, renombrar y quitar (✕, dos pulsaciones) (falta ver canales)
 - [~] Varias fuentes con interruptor; actualizar las fuentes al abrir (`refreshSources`)

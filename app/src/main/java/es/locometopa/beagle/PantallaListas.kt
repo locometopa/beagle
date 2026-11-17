@@ -34,6 +34,7 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
     var listas by remember { mutableStateOf(conexion.listas()) }
     var mensaje by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     var ocupado by remember { mutableStateOf(false) }
+    val contexto = androidx.compose.ui.platform.LocalContext.current
     var renombrando by remember { mutableStateOf<String?>(null) }
     var quitando by remember { mutableStateOf<String?>(null) }
     var nombreNuevo by remember { mutableStateOf("") }
@@ -86,6 +87,20 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
                                 mensaje = true to "«${r.nombre}» añadida: ${r.creados} canales nuevos"
                             }
                         }) { Text("Añadir") }
+                        Button(onClick = {
+                            val campo = android.widget.EditText(contexto).apply { hint = "Pega aquí la lista (M3U, JSON de AceList o enlaces acestream://)"; minLines = 6; gravity = android.view.Gravity.TOP }
+                            android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                                .setTitle("Añadir una lista pegando el texto").setView(campo)
+                                .setPositiveButton("Añadir") { _, _ ->
+                                    val texto = campo.text.toString()
+                                    if (texto.isBlank()) mensaje = false to "No has pegado nada"
+                                    else trabajar("Leyendo la lista en el servidor…") {
+                                        val r = conexion.anadirListaTexto(nombreLista, texto)
+                                        nombreLista = ""
+                                        mensaje = true to "«${r.nombre}» añadida: ${r.creados} canales nuevos"
+                                    }
+                                }.setNegativeButton("Cancelar", null).show()
+                        }) { Text("Pegar texto…") }
                     }
                 }
             }

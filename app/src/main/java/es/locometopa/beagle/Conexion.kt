@@ -151,6 +151,13 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         if (n == 0) throw java.io.IOException("Este canal no se puede cambiar desde aquí (es un enlace directo)")
     }
 
+    /** Fija a mano qué canal da un evento de la agenda (`agendaMapa`: nombre de la cadena → ids de mis canales). */
+    suspend fun asignarAgenda(nombre: String, ids: List<String>) = modificarDatos { datos ->
+        val aj = datos.optJSONObject("ajustes") ?: org.json.JSONObject().also { datos.put("ajustes", it) }
+        val mapa = aj.optJSONObject("agendaMapa") ?: org.json.JSONObject().also { aj.put("agendaMapa", it) }
+        mapa.put(nombre, org.json.JSONArray(ids))
+    }
+
     /** Ids de los canales (enlaces) que vienen de una lista, según la copia local. */
     fun idsDeLista(id: String): Set<String> {
         val cs = local.leer()?.datos?.optJSONArray("channels") ?: return emptySet()
@@ -215,6 +222,15 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
     suspend fun anadirLista(nombre: String, url: String): Servidor.ListaAnadida = withContext(Dispatchers.IO) {
         val equipo = servidorOError()
         val r = Servidor.anadirLista(equipo, nombre.trim().ifEmpty { "Lista" }, url.trim())
+        val s = Servidor.leerSincro(equipo, ajustes.identidad(), 0, ajustes.sincroLigero)
+        s.datos?.let { local.guardar(Copia(s.rev, it, s.ligero)) }
+        r
+    }
+
+    /** Añade una lista desde texto pegado y refresca la copia local. */
+    suspend fun anadirListaTexto(nombre: String, texto: String): Servidor.ListaAnadida = withContext(Dispatchers.IO) {
+        val equipo = servidorOError()
+        val r = Servidor.anadirListaTexto(equipo, nombre.trim().ifEmpty { "Lista pegada" }, texto)
         val s = Servidor.leerSincro(equipo, ajustes.identidad(), 0, ajustes.sincroLigero)
         s.datos?.let { local.guardar(Copia(s.rev, it, s.ligero)) }
         r
