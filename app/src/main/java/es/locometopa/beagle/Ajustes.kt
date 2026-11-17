@@ -60,6 +60,19 @@ class Ajustes(private val contexto: Context) {
         set(v) = sp.edit().putBoolean("intro", v).apply()
 
     /** Ocultar en «Todos» los canales caídos (HomeTV: `hideDead`). */
+    /** Panel del móvil (servidor en esta tele, puerto 8095): encendido, clave corta y puerto. */
+    var movilActivo: Boolean
+        get() = sp.getBoolean("movilActivo", false)
+        set(v) = sp.edit().putBoolean("movilActivo", v).apply()
+
+    var movilToken: String
+        get() = sp.getString("movilToken", "") ?: ""
+        set(v) = sp.edit().putString("movilToken", v).apply()
+
+    var movilPuerto: Int
+        get() = sp.getInt("movilPuerto", 8095)
+        set(v) = sp.edit().putInt("movilPuerto", v).apply()
+
     var comprobarAlAbrir: Boolean
         get() = sp.getBoolean("comprobarAlAbrir", false)
         set(v) = sp.edit().putBoolean("comprobarAlAbrir", v).apply()

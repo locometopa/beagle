@@ -302,6 +302,11 @@ object Servidor {
         pedirJson(casa(equipo) + "/api/comprobar", 10000, "POST", JSONObject().put("accion", if (empezar) "empezar" else "parar").toString())
     }
 
+    /** Pide al servidor que compruebe solo estos canales (por sus ids). */
+    fun comprobarIds(equipo: String, ids: List<String>) {
+        pedirJson(casa(equipo) + "/api/comprobar", 10000, "POST", JSONObject().put("ids", org.json.JSONArray(ids)).toString())
+    }
+
     /** Recupera una copia del servidor: sustituye los canales y listas compartidos por los de esa copia. */
     fun restaurar(equipo: String, nombre: String) {
         pedirJson(casa(equipo) + "/api/restaurar", 30000, "POST", JSONObject().put("nombre", nombre).toString())

@@ -223,7 +223,7 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
     }
 
     /** Cambia los datos compartidos con [cambio] y los sube al servidor; si otra tele guardó antes, repite el cambio encima de lo suyo (hasta tres veces). */
-    private suspend fun modificarDatos(cambio: (org.json.JSONObject) -> Unit) = withContext(Dispatchers.IO) {
+    suspend fun modificarDatos(cambio: (org.json.JSONObject) -> Unit) = withContext(Dispatchers.IO) {
         val equipo = servidorOError()
         val ident = ajustes.identidad()
         var copia = local.leer() ?: throw java.io.IOException("Aún no hay datos de la tele: abre Ajustes para sincronizar")
@@ -285,6 +285,7 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
     /** Borra lo guardado en esta tele (copias locales, vistos, última sección); lo del servidor no se toca. */
     suspend fun comprobacion(): Comprobacion = withContext(Dispatchers.IO) { Servidor.comprobacion(servidorOError()) }
     suspend fun comprobar(empezar: Boolean) = withContext(Dispatchers.IO) { Servidor.comprobar(servidorOError(), empezar) }
+    suspend fun comprobarIds(ids: List<String>) = withContext(Dispatchers.IO) { Servidor.comprobarIds(servidorOError(), ids) }
     suspend fun restaurar(nombre: String) = withContext(Dispatchers.IO) { Servidor.restaurar(servidorOError(), nombre) }
 
     fun empezarDeCero() { local.borrarTodo(); ajustes.vistos = emptyList(); ajustes.ultimaSeccion = "" }

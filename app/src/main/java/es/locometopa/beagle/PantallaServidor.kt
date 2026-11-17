@@ -163,6 +163,12 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             },
         )
 
+        var movil by remember { mutableStateOf(PanelMovil.activo) }
+        FilaAjuste("Controlar desde el móvil (código QR)", if (movil) "Encendido ›" else "Apagado ›", {
+            PanelMovil.preparar(contexto, conexion, ajustes)
+            mostrarPanelMovil(contexto) { movil = PanelMovil.activo }
+        })
+
         var alAbrir by remember { mutableStateOf(ajustes.comprobarAlAbrir) }
         FilaAjuste("Comprobar los canales al abrir la app", if (alAbrir) "Sí" else "No", { alAbrir = !alAbrir; ajustes.comprobarAlAbrir = alAbrir })
 
@@ -261,4 +267,49 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         }
         Text("Beagle ${ajustes.version()}", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp, top = 12.dp, bottom = 24.dp))
     }
+}
+
+
+/** Diálogo del panel del móvil: código QR, dirección, y encender/apagar/cambiar la clave. */
+private fun mostrarPanelMovil(contexto: android.content.Context, alCambiar: () -> Unit) {
+    val dp = contexto.resources.displayMetrics.density
+    val caja = android.widget.LinearLayout(contexto).apply { orientation = android.widget.LinearLayout.VERTICAL; setPadding((24 * dp).toInt(), (8 * dp).toInt(), (24 * dp).toInt(), 0) }
+    fun pintar(): Unit {
+        caja.removeAllViews()
+        if (!PanelMovil.activo) {
+            caja.addView(android.widget.TextView(contexto).apply { text = "El panel del móvil está apagado."; textSize = 16f })
+            return
+        }
+        val url = PanelMovil.direccion()
+        val matriz = com.google.zxing.qrcode.QRCodeWriter().encode(url, com.google.zxing.BarcodeFormat.QR_CODE, 0, 0, mapOf(com.google.zxing.EncodeHintType.MARGIN to 2))
+        val lado = 6
+        val bmp = android.graphics.Bitmap.createBitmap(matriz.width * lado, matriz.height * lado, android.graphics.Bitmap.Config.RGB_565)
+        for (x in 0 until matriz.width) for (y in 0 until matriz.height) {
+            val c = if (matriz.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE
+            for (i in 0 until lado) for (j in 0 until lado) bmp.setPixel(x * lado + i, y * lado + j, c)
+        }
+        caja.addView(android.widget.ImageView(contexto).apply { setImageBitmap(bmp); layoutParams = android.widget.LinearLayout.LayoutParams((200 * dp).toInt(), (200 * dp).toInt()).apply { gravity = android.view.Gravity.CENTER_HORIZONTAL } })
+        caja.addView(android.widget.TextView(contexto).apply { text = "Escanea el código con la cámara del móvil, o escribe esta dirección en el navegador del móvil o del ordenador (en la misma red):"; textSize = 14f; setPadding(0, (8 * dp).toInt(), 0, 0) })
+        caja.addView(android.widget.TextView(contexto).apply { text = url.removePrefix("http://"); textSize = 18f; setTypeface(typeface, android.graphics.Typeface.BOLD) })
+        caja.addView(android.widget.TextView(contexto).apply { text = "Desde el móvil puedes importar listas, renombrar y ordenar canales por categoría, borrar, comprobar y mandar un canal a reproducir en la tele. Funciona mientras Beagle esté abierta."; textSize = 13f; setPadding(0, (8 * dp).toInt(), 0, 0) })
+    }
+    var d: android.app.AlertDialog? = null
+    fun botones() {
+        d?.dismiss()
+        pintar()
+        val b = android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Controlar desde el móvil").setView(caja)
+        if (PanelMovil.activo) {
+            b.setNeutralButton("Apagar") { _, _ -> PanelMovil.apagar(); alCambiar() }
+            b.setNegativeButton("Cambiar la clave") { _, _ -> try { PanelMovil.cambiarClave() } catch (e: Exception) { }; alCambiar(); mostrarPanelMovil(contexto, alCambiar) }
+            b.setPositiveButton("Cerrar", null)
+        } else {
+            b.setPositiveButton("Encender") { _, _ ->
+                try { PanelMovil.encender() } catch (e: Exception) { android.widget.Toast.makeText(contexto, "No se pudo encender: ${e.message}", android.widget.Toast.LENGTH_LONG).show() }
+                alCambiar(); mostrarPanelMovil(contexto, alCambiar)
+            }
+            b.setNegativeButton("Cerrar", null)
+        }
+        d = b.show()
+    }
+    botones()
 }

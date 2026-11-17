@@ -113,6 +113,14 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
 
         LaunchedEffect(Unit) { recargar() }
 
+        // Panel del móvil: si estaba encendido, vuelve a encenderse al abrir la app
+        LaunchedEffect(Unit) {
+            PanelMovil.preparar(this@MainActivity, conexion, ajustes)
+            if (ajustes.movilActivo) {
+                try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { PanelMovil.encender() } } catch (e: Exception) { /* puerto ocupado */ }
+            }
+        }
+
         // Si lo has pedido en Ajustes, al abrir la app el servidor comprueba los canales (sin esperar).
         LaunchedEffect(servidorVacio) {
             if (!servidorVacio && ajustes.comprobarAlAbrir) {
