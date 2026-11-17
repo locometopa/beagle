@@ -163,6 +163,9 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             },
         )
 
+        var alAbrir by remember { mutableStateOf(ajustes.comprobarAlAbrir) }
+        FilaAjuste("Comprobar los canales al abrir la app", if (alAbrir) "Sí" else "No", { alAbrir = !alAbrir; ajustes.comprobarAlAbrir = alAbrir })
+
         var intro by remember { mutableStateOf(ajustes.intro) }
         FilaAjuste("Vídeo de entrada al abrir la app (prueba)", if (intro) "Sí" else "No", { intro = !intro; ajustes.intro = intro })
 

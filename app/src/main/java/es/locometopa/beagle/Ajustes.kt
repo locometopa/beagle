@@ -60,6 +60,10 @@ class Ajustes(private val contexto: Context) {
         set(v) = sp.edit().putBoolean("intro", v).apply()
 
     /** Ocultar en «Todos» los canales caídos (HomeTV: `hideDead`). */
+    var comprobarAlAbrir: Boolean
+        get() = sp.getBoolean("comprobarAlAbrir", false)
+        set(v) = sp.edit().putBoolean("comprobarAlAbrir", v).apply()
+
     var ocultarCaidos: Boolean
         get() = sp.getBoolean("ocultarCaidos", false)
         set(v) = sp.edit().putBoolean("ocultarCaidos", v).apply()

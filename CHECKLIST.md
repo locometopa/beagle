@@ -137,6 +137,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 ## 11. Comprobar canales
 
 - [~] Comprobar todos los canales: lo hace el servidor (`POST /api/comprobar`), con progreso en Canales y Ajustes (0.18.0)
+- [~] Comprobar los canales al abrir la app (ajuste, apagado de serie) (0.21.0)
 - [ ] Varios a la vez y segunda pasada para los que fallan (`concurrency`, `retryFailed`)
 - [ ] Comprobar al abrir la app o cada N horas (`autoVerify`, `autoVerifyHours`, `preComprobar`)
 - [ ] Canales IPTV: comprobación propia sin motor (`GET /probe`)

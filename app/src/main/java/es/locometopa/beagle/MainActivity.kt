@@ -113,6 +113,15 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
 
         LaunchedEffect(Unit) { recargar() }
 
+        // Si lo has pedido en Ajustes, al abrir la app el servidor comprueba los canales (sin esperar).
+        LaunchedEffect(servidorVacio) {
+            if (!servidorVacio && ajustes.comprobarAlAbrir) {
+                try {
+                    if (!conexion.comprobacion().activa) conexion.comprobar(true)
+                } catch (e: Exception) { /* el servidor no responde: no pasa nada */ }
+            }
+        }
+
         // El panel del servidor puede bloquear esta tele (mensaje a pantalla completa) o pedirle que se actualice.
         // Se pregunta cada 20 s; si el servidor no responde se deja todo como estaba.
         var bloqueo by remember { mutableStateOf<Bloqueo?>(null) }
