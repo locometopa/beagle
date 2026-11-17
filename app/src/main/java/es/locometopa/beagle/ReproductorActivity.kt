@@ -78,6 +78,8 @@ class ReproductorActivity : Activity() {
     private lateinit var vista: PlayerView
     private lateinit var panel: LinearLayout
     private lateinit var txtNumero: TextView
+    /** Canales que se están grabando en el servidor desde aquí: clave → hasta cuándo (ms). */
+    private val grabando = HashMap<String, Long>()
     private lateinit var txtTitulo: TextView
     private lateinit var txtEstado: TextView
     private lateinit var txtAyuda: TextView
@@ -309,6 +311,7 @@ class ReproductorActivity : Activity() {
         if (fuentes.size > 1) partes.add("Enlace ${fuente + 1} de ${fuentes.size}")
         if (formato == "hls") partes.add("HLS")
         if (canales[indice].favorito) partes.add("★")
+        if ((grabando[canales[indice].clave] ?: 0L) > System.currentTimeMillis()) partes.add("⏺ REC")
         txtNumero.text = partes.joinToString("   ·   ")
         txtTitulo.text = canales[indice].titulo
     }
@@ -725,6 +728,7 @@ class ReproductorActivity : Activity() {
                 try { Servidor.grabar(equipo, canal, minutos[i]) } catch (e: Exception) { error = e.message ?: "sin conexión con el servidor" }
                 ui.post {
                     if (isFinishing || isDestroyed) return@post
+                    if (error.isEmpty()) { grabando[canal.clave] = System.currentTimeMillis() + minutos[i] * 60_000L; rotular() }
                     txtEstado.text = if (error.isEmpty()) "⏺ Grabando ${minutos[i]} min en el servidor (míralo en Vídeos › Grabaciones)" else "No se ha podido grabar: $error"
                     mostrarPanel(5000)
                 }

@@ -130,18 +130,44 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
      * Cambia algo de una lista (encenderla, apagarla, renombrarla) y lo sube al servidor.
      * Si otra tele guardó antes, se carga lo suyo y se repite el cambio encima, hasta tres veces.
      */
-    suspend fun modificarLista(id: String, cambio: (org.json.JSONObject) -> Unit) = withContext(Dispatchers.IO) {
+    suspend fun modificarLista(id: String, cambio: (org.json.JSONObject) -> Unit) = modificarDatos { datos ->
+        val fuentes = datos.optJSONArray("sources") ?: throw java.io.IOException("No hay listas")
+        var hecho = false
+        for (i in 0 until fuentes.length()) {
+            val f = fuentes.optJSONObject(i)
+            if (f != null && f.optString("id", "") == id) { cambio(f); hecho = true }
+        }
+        if (!hecho) throw java.io.IOException("Esa lista ya no existe")
+    }
+
+    /** Quita una lista y los canales que solo venían de ella (los que tienen otra lista, o se añadieron a mano, se quedan). */
+    suspend fun quitarLista(id: String) = modificarDatos { datos ->
+        val fuentes = datos.optJSONArray("sources") ?: throw java.io.IOException("No hay listas")
+        val nuevas = org.json.JSONArray()
+        for (i in 0 until fuentes.length()) { val f = fuentes.optJSONObject(i); if (f != null && f.optString("id", "") != id) nuevas.put(f) }
+        datos.put("sources", nuevas)
+        val canales = datos.optJSONArray("channels") ?: return@modificarDatos
+        val quedan = org.json.JSONArray()
+        for (i in 0 until canales.length()) {
+            val c = canales.optJSONObject(i) ?: continue
+            val ls = c.optJSONArray("listas")
+            if (ls == null) { quedan.put(c); continue }
+            val resto = org.json.JSONArray()
+            var estaba = false
+            for (j in 0 until ls.length()) { if (ls.optString(j, "") == id) estaba = true else resto.put(ls.optString(j, "")) }
+            if (!estaba) quedan.put(c)
+            else if (resto.length() > 0) { c.put("listas", resto); quedan.put(c) }
+        }
+        datos.put("channels", quedan)
+    }
+
+    /** Cambia los datos compartidos con [cambio] y los sube al servidor; si otra tele guardó antes, repite el cambio encima de lo suyo (hasta tres veces). */
+    private suspend fun modificarDatos(cambio: (org.json.JSONObject) -> Unit) = withContext(Dispatchers.IO) {
         val equipo = servidorOError()
         val ident = ajustes.identidad()
         var copia = local.leer() ?: throw java.io.IOException("Aún no hay datos de la tele: abre Ajustes para sincronizar")
         repeat(3) {
-            val fuentes = copia.datos.optJSONArray("sources") ?: throw java.io.IOException("No hay listas")
-            var hecho = false
-            for (i in 0 until fuentes.length()) {
-                val f = fuentes.optJSONObject(i)
-                if (f != null && f.optString("id", "") == id) { cambio(f); hecho = true }
-            }
-            if (!hecho) throw java.io.IOException("Esa lista ya no existe")
+            cambio(copia.datos)
             when (val r = Servidor.guardarSincro(equipo, ident, copia.rev, copia.datos, copia.ligero)) {
                 is Guardado.Hecho -> {
                     local.guardar(Copia(r.rev, copia.datos, copia.ligero))

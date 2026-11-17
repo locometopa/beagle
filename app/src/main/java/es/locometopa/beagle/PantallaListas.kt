@@ -35,6 +35,7 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
     var mensaje by remember { mutableStateOf<Pair<Boolean, String>?>(null) }
     var ocupado by remember { mutableStateOf(false) }
     var renombrando by remember { mutableStateOf<String?>(null) }
+    var quitando by remember { mutableStateOf<String?>(null) }
     var nombreNuevo by remember { mutableStateOf("") }
     var url by remember { mutableStateOf("") }
     var nombreLista by remember { mutableStateOf("") }
@@ -107,6 +108,10 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
                             }
                         }
                         Fila(onClick = { renombrando = l.id; nombreNuevo = l.nombre }) { Text("✎", fontSize = 22.sp, color = Colores.Apagado) }
+                        if (!l.deSerie) Fila(onClick = {
+                            if (quitando != l.id) { quitando = l.id; mensaje = false to "Pulsa otra vez ✕ para quitar «${l.nombre}» y sus ${l.canales} canales" }
+                            else { quitando = null; trabajar("Quitando «${l.nombre}»…") { conexion.quitarLista(l.id); mensaje = true to "«${l.nombre}» quitada" } }
+                        }, modifier = Modifier.padding(start = 8.dp)) { Text("✕", fontSize = 22.sp, color = if (quitando == l.id) Colores.Mal else Colores.Apagado) }
                     }
                     if (renombrando == l.id) {
                         Row(Modifier.padding(start = 16.dp, top = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {

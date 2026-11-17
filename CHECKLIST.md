@@ -59,7 +59,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Calidad ligera fuera de casa (`/aac/abrir?calidad=baja`)
 - [ ] Canales IPTV por la pasarela VPN del servidor (`tvPorVpn`)
 - [ ] Apuntar el resultado de cada enlace (arrancó o no, peers) para ordenar mejor después
-- [~] Grabar el canal en el servidor (`/api/grabar`) desde las opciones del reproductor (falta indicador REC)
+- [~] Grabar el canal en el servidor (`/api/grabar`) desde las opciones del reproductor, con «⏺ REC» en el rótulo (0.18.3)
 - [ ] Vídeos de carpetas: pausa, saltos de 10 s / 1 min, pasar al siguiente al terminar
 - [ ] Gestos en el móvil: deslizar para canal y enlace, tocar, doble toque, mantener pulsado
 - [~] Cerrar el canal y liberar el motor al salir
@@ -127,7 +127,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 - [ ] Importar: exportación de AceList (JSON), M3U, enlaces `acestream://` sueltos, texto pegado
 - [~] Importar desde una dirección web y guardarla como fuente para actualizarla
-- [~] Listas con nombre; pantalla Listas: activar, desactivar, renombrar (falta: ver canales y quitar)
+- [~] Listas con nombre; pantalla Listas: activar, desactivar, renombrar y quitar (✕, dos pulsaciones) (falta ver canales)
 - [~] Varias fuentes con interruptor; actualizar las fuentes al abrir (`refreshSources`)
 - [ ] Lista TDTChannels incluida de serie, desactivada
 - [~] Listas Xtream, W3U y MylinkPaste (las resuelve el servidor: `POST /api/lista`)
