@@ -33,7 +33,7 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import kotlinx.coroutines.launch
 
-private val Panel = Color(0xFF2D2D2D)
+private val Panel = Color(0xFF18212F)
 private val Apagado = Color(0xFFA0A0A0)
 private val Bien = Color(0xFF2FBF71)
 private val Mal = Color(0xFFE5484D)

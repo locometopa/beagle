@@ -48,12 +48,12 @@ val Outfit = FontFamily(
 
 // Los mismos tonos que HomeTV
 object Colores {
-    val Fondo = Color(0xFF202020)
-    val Panel = Color(0xFF2D2D2D)
-    val Lateral = Color(0xFF1B1B1B)
+    val Fondo = Color(0xFF0B1220)
+    val Panel = Color(0xFF18212F)
+    val Lateral = Color(0xFF050D1A)
     val Texto = Color(0xFFF4F4F4)
-    val Apagado = Color(0xFFA0A0A0)
-    val Acento = Color(0xFFC6F24E)
+    val Apagado = Color(0xFF9AA3B2)
+    val Acento = Color(0xFFFCA12C)
     val Bien = Color(0xFF2FBF71)
     val Aviso = Color(0xFFE6B422)
     val Mal = Color(0xFFE5484D)

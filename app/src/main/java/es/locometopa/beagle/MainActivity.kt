@@ -27,6 +27,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.text.TextStyle
@@ -144,9 +145,9 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
             // Menú lateral, como el de HomeTV: fondo más oscuro, marca, píldoras y el estado abajo
             Column(Modifier.width(210.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 14.dp, vertical = 20.dp)) {
                 Row(Modifier.padding(start = 8.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.logo), null, Modifier.size(40.dp))
+                    androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.logo), null, Modifier.size(52.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)))
                     Column(Modifier.padding(start = 10.dp)) {
-                        Text("Beagle", fontSize = 26.sp, color = Colores.Acento, fontWeight = FontWeight.Bold)
+                        Row { Text("Beagle", fontSize = 26.sp, color = Colores.Texto, fontWeight = FontWeight.Bold); Text(" TV", fontSize = 26.sp, color = Colores.Acento, fontWeight = FontWeight.Bold) }
                         Text("tu tele en casa", fontSize = 12.sp, color = Colores.Apagado)
                     }
                 }
