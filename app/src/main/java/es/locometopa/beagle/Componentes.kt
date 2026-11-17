@@ -50,16 +50,16 @@ val Outfit = FontFamily(
     Font(R.font.outfit_bold, FontWeight.Bold),
 )
 
-// Los mismos tonos que HomeTV: gris oscuro con verde lima
+// Azul noche con dorado, los colores del logo
 object Colores {
-    val Fondo = Color(0xFF202020)
-    val Panel = Color(0xFF2F2F2F)
-    val PanelFoco = Color(0xFF3E3E3E)
-    val Lateral = Color(0xFF1B1B1B)
-    val Linea = Color(0xFF4B4B4B)
+    val Fondo = Color(0xFF0D141E)
+    val Panel = Color(0xFF19212D)
+    val PanelFoco = Color(0xFF27313F)
+    val Lateral = Color(0xFF070E19)
+    val Linea = Color(0xFF3A4454)
     val Texto = Color(0xFFF4F4F4)
-    val Apagado = Color(0xFFA0A0A0)
-    val Acento = Color(0xFFC6F24E)
+    val Apagado = Color(0xFFA3AAB5)
+    val Acento = Color(0xFFE2AE49)
     val Bien = Color(0xFF7FE0A8)
     val Aviso = Color(0xFFF0C64A)
     val Mal = Color(0xFFFF6B6E)
