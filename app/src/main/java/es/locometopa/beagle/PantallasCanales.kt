@@ -226,7 +226,8 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
             Text(if (datos.cargando) "Cargando canales…" else datos.error ?: "Sin canales", fontSize = 20.sp, color = Colores.Apagado)
             return@Column
         }
-        val categorias = listOf("Todos", "★ Favoritos") + cat.categorias
+        val ocultas = remember(datos.catalogo) { conexion.catOcultas() }
+        val categorias = listOf("Todos", "★ Favoritos") + cat.categorias.filter { Modelo.sinTildes(it) !in ocultas }
         val directo = cat.eventos.filter { it.vivo && !it.aplazado && cat.canalesDe(it).isNotEmpty() }.take(8)
         val contexto = LocalContext.current
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -273,7 +274,7 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
         }
         val idsLista = remember(listaElegida, datos.catalogo) { listaElegida?.let { conexion.idsDeLista(it) } }
         val lista = when (elegida) {
-            "Todos" -> if (ajustes.ocultarCaidos) cat.canales.filter { it.estado < 2 } else cat.canales
+            "Todos" -> cat.canales.filter { (!ajustes.ocultarCaidos || it.estado < 2) && Modelo.sinTildes(it.categoria) !in ocultas }
             "★ Favoritos" -> cat.canales.filter { it.favorito }
             else -> cat.canales.filter { it.categoria == elegida }
         }

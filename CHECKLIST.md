@@ -78,7 +78,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Menú: Inicio, Canales, Agenda, Buscar, Importar, Listas, Móvil, Ajustes; recuerda dónde estabas (recuerda la sección; faltan Importar y Móvil)
 - [~] Todo manejable con el mando: foco visible, ▲▼◀▶, OK, Atrás, pulsación larga de OK
 - [~] Tipografía Outfit incluida en la app
-- [ ] Vídeo de entrada (intro) si el servidor tiene uno (`/intro.mp4`, ajuste `intro`)
+- [~] Vídeo de entrada (`/intro.mp4`) con ajuste, apagado de serie (es para pruebas; se quitará) (0.20.1)
 - [ ] Diseño para móvil (pantalla táctil) con la misma APK (`diseno: auto | tele | movil`)
 
 ## 6. Inicio (portada)

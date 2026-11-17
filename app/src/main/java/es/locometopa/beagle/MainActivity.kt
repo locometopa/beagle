@@ -4,6 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
@@ -179,6 +181,13 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                 }
             }
         }
+            // Vídeo de entrada (solo si está activado en Ajustes y el servidor lo tiene): se salta con cualquier tecla
+            var verIntro by remember { mutableStateOf(ajustes.intro && !servidorVacio) }
+            var introListo by remember { mutableStateOf(false) }
+            if (verIntro) {
+                LaunchedEffect(Unit) { if (conexion.hayIntro()) introListo = true else verIntro = false }
+                if (introListo) PantallaIntro(conexion.urlIntro()) { verIntro = false }
+            }
             // El aviso de versión nueva va por encima de todo y coge el foco
             AvisoActualizacion(ajustes, pedirActualizar, Modifier.fillMaxSize())
             bloqueo?.let { PantallaBloqueada(it.mensaje) }
@@ -199,5 +208,29 @@ private fun PantallaBloqueada(mensaje: String) {
             Spacer(Modifier.height(16.dp))
             Text(mensaje.ifEmpty { "La tele está bloqueada." }, fontSize = 24.sp, color = Colores.Texto)
         }
+    }
+}
+
+/** Pantalla negra con el vídeo de entrada; cualquier tecla, Atrás o el final lo cierran. */
+@Composable
+private fun PantallaIntro(url: String, alTerminar: () -> Unit) {
+    val foco = remember { FocusRequester() }
+    BackHandler(enabled = true) { alTerminar() }
+    LaunchedEffect(Unit) { try { foco.requestFocus() } catch (e: Exception) { /* aún no está colocado */ } }
+    Box(
+        Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.Black).focusRequester(foco).focusable()
+            .onKeyEvent { if (it.type == androidx.compose.ui.input.key.KeyEventType.KeyDown) { alTerminar(); true } else false },
+    ) {
+        androidx.compose.ui.viewinterop.AndroidView(
+            modifier = Modifier.fillMaxSize(),
+            factory = { c ->
+                android.widget.VideoView(c).apply {
+                    setVideoURI(android.net.Uri.parse(url))
+                    setOnPreparedListener { it.isLooping = false; start() }
+                    setOnCompletionListener { alTerminar() }
+                    setOnErrorListener { _, _, _ -> alTerminar(); true }
+                }
+            },
+        )
     }
 }

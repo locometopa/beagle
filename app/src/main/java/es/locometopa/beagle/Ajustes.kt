@@ -54,6 +54,11 @@ class Ajustes(private val contexto: Context) {
         vistos = (listOf(clave) + vistos.filter { it != clave }).take(12)
     }
 
+    /** Vídeo de entrada al abrir la app (el `/intro.mp4` del servidor). Apagado de serie: es para pruebas. */
+    var intro: Boolean
+        get() = sp.getBoolean("intro", false)
+        set(v) = sp.edit().putBoolean("intro", v).apply()
+
     /** Ocultar en «Todos» los canales caídos (HomeTV: `hideDead`). */
     var ocultarCaidos: Boolean
         get() = sp.getBoolean("ocultarCaidos", false)

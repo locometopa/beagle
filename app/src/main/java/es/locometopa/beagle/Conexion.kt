@@ -151,6 +151,37 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         if (n == 0) throw java.io.IOException("Este canal no se puede cambiar desde aquí (es un enlace directo)")
     }
 
+    /** ¿Tiene el servidor un vídeo de entrada (`/intro.mp4`)? */
+    suspend fun hayIntro(): Boolean = withContext(Dispatchers.IO) {
+        val equipo = ajustes.servidor
+        if (equipo.isEmpty()) return@withContext false
+        try {
+            val c = java.net.URL(Servidor.casa(equipo) + "/intro.mp4").openConnection() as java.net.HttpURLConnection
+            try { c.requestMethod = "HEAD"; c.connectTimeout = 3000; c.readTimeout = 3000; c.responseCode in 200..299 } finally { c.disconnect() }
+        } catch (e: Exception) { false }
+    }
+
+    fun urlIntro(): String = Servidor.casa(ajustes.servidor) + "/intro.mp4"
+
+    /** Un ajuste compartido entre teles (en `ajustes` de los datos del servidor), leído de la copia local. */
+    fun ajusteCompartido(clave: String, porDefecto: Boolean): Boolean = local.leer()?.datos?.optJSONObject("ajustes")?.optBoolean(clave, porDefecto) ?: porDefecto
+
+    suspend fun ponerAjusteCompartido(clave: String, valor: Boolean) = modificarDatos { datos ->
+        val aj = datos.optJSONObject("ajustes") ?: org.json.JSONObject().also { datos.put("ajustes", it) }
+        aj.put(clave, valor)
+    }
+
+    /** Categorías ocultas (`catOcultas` compartido), sin tildes ni mayúsculas para compararlas. */
+    fun catOcultas(): Set<String> {
+        val a = local.leer()?.datos?.optJSONObject("ajustes")?.optJSONArray("catOcultas") ?: return emptySet()
+        return (0 until a.length()).map { Modelo.sinTildes(a.optString(it, "")) }.toSet()
+    }
+
+    suspend fun ponerCatOcultas(nombres: List<String>) = modificarDatos { datos ->
+        val aj = datos.optJSONObject("ajustes") ?: org.json.JSONObject().also { datos.put("ajustes", it) }
+        aj.put("catOcultas", org.json.JSONArray(nombres))
+    }
+
     /** Fija a mano qué canal da un evento de la agenda (`agendaMapa`: nombre de la cadena → ids de mis canales). */
     suspend fun asignarAgenda(nombre: String, ids: List<String>) = modificarDatos { datos ->
         val aj = datos.optJSONObject("ajustes") ?: org.json.JSONObject().also { datos.put("ajustes", it) }

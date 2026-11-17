@@ -125,6 +125,23 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         Text("Instaladas: $apps", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
 
         FilaAjuste("Ocultar los caídos en «Todos»", if (ocultarCaidos) "Sí" else "No", { ocultarCaidos = !ocultarCaidos; ajustes.ocultarCaidos = ocultarCaidos })
+        var nOcultas by remember { mutableStateOf(conexion.catOcultas().size) }
+        FilaAjuste("Ocultar categorías", if (nOcultas == 0) "Ninguna ›" else "$nOcultas ocultas ›", {
+            val todas = AccionesCanal.categorias
+            if (todas.isEmpty()) { mensaje = false to "Aún no hay categorías: espera a que carguen los canales"; return@FilaAjuste }
+            val ocultas = conexion.catOcultas()
+            val marcadas = BooleanArray(todas.size) { Modelo.sinTildes(todas[it]) in ocultas }
+            android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                .setTitle("Marca las categorías que quieres ocultar")
+                .setMultiChoiceItems(todas.toTypedArray(), marcadas) { _, i, v -> marcadas[i] = v }
+                .setPositiveButton("Guardar") { _, _ ->
+                    val elegidas = todas.filterIndexed { i, _ -> marcadas[i] }
+                    alcance.launch {
+                        try { conexion.ponerCatOcultas(elegidas); nOcultas = elegidas.size; alCambiarServidor() }
+                        catch (e: Exception) { mensaje = false to (e.message ?: "No se ha podido") }
+                    }
+                }.setNegativeButton("Cancelar", null).show()
+        })
         val cp = comprobando
         FilaAjuste(
             if (cp?.activa == true) "Parar la comprobación de canales" else "Comprobar todos los canales (lo hace el servidor)",
@@ -146,6 +163,9 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             },
         )
 
+        var intro by remember { mutableStateOf(ajustes.intro) }
+        FilaAjuste("Vídeo de entrada al abrir la app (prueba)", if (intro) "Sí" else "No", { intro = !intro; ajustes.intro = intro })
+
         TituloAjustes("Servidor de casa")
         FilaAjuste("Estado", tituloEstado, { comprobar() }, colorValor = colorEstado)
         if (detalleEstado.isNotEmpty()) Text(detalleEstado, fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
@@ -165,6 +185,11 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             TituloAjustes("VPN del servidor")
             FilaAjuste("Estado de la VPN", if (conectado.salud.vpn) "activa" + (conectado.salud.vpnDetalle?.let { " · $it" } ?: "") else "apagada",
                 { comprobar() }, colorValor = if (conectado.salud.vpn) Colores.Bien else Colores.Apagado)
+            var tvVpn by remember { mutableStateOf(conexion.ajusteCompartido("tvPorVpn", true)) }
+            FilaAjuste("Canales de TV (IPTV/HLS) por la VPN del servidor", if (tvVpn) "Sí" else "No", {
+                tvVpn = !tvVpn
+                alcance.launch { try { conexion.ponerAjusteCompartido("tvPorVpn", tvVpn) } catch (e: Exception) { tvVpn = !tvVpn; mensaje = false to (e.message ?: "No se ha podido") } }
+            })
             FilaAjuste("Cloudflare WARP", "usar ›", { cambiarVpn("warp") })
             FilaAjuste("Proton VPN", "usar ›", { cambiarVpn("proton") })
             FilaAjuste("Sin VPN", "›", { cambiarVpn("ninguna") })
