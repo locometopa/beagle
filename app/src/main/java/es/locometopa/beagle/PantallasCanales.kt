@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -108,25 +109,30 @@ private fun Titulo(texto: String) {
     Text(texto, fontSize = 22.sp, color = Colores.Texto, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 16.dp))
 }
 
-/** Canales: categorías a la izquierda, canales a la derecha. */
+/** Canales en filas: arriba las categorías, debajo los filtros y el orden, y luego la lista a todo el ancho. */
 @Composable
 fun PantallaCanales(datos: Datos) {
     val cat = datos.catalogo
     var elegida by remember { mutableStateOf("Todos") }
     var filtro by remember { mutableStateOf(0) }
     var orden by remember { mutableStateOf(0) }
-    Row(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (cat == null) {
             Text(if (datos.cargando) "Cargando canales…" else datos.error ?: "Sin canales", fontSize = 20.sp, color = Colores.Apagado)
-            return@Row
+            return@Column
         }
         val categorias = listOf("Todos", "★ Favoritos") + cat.categorias
-        LazyColumn(Modifier.width(260.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(categorias, key = { it }) { nombre ->
-                Fila(onClick = { elegida = nombre }, modifier = Modifier.fillMaxWidth(), seleccionada = nombre == elegida) {
-                    Text(nombre, fontSize = 18.sp, color = Colores.Texto)
-                }
+                Fila(onClick = { elegida = nombre }, seleccionada = nombre == elegida) { Text(nombre, fontSize = 17.sp, color = Colores.Texto) }
             }
+        }
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            val nombres = listOf("Todos", "Vivos", "Sin caídos", "Caídos")
+            items(nombres.size) { i ->
+                Fila(onClick = { filtro = i }, seleccionada = filtro == i) { Text(nombres[i], fontSize = 15.sp, color = Colores.Apagado) }
+            }
+            item { Fila(onClick = { orden = 1 - orden }) { Text(if (orden == 0) "Orden: mejores primero" else "Orden: A-Z", fontSize = 15.sp, color = Colores.Acento) } }
         }
         val lista = when (elegida) {
             "Todos" -> cat.canales
@@ -139,14 +145,7 @@ fun PantallaCanales(datos: Datos) {
             3 -> lista.filter { it.estado == 2 }
             else -> lista
         }.let { l -> if (orden == 1) l.sortedBy { it.buscable } else l.sortedBy { it.estado } }
-        Column(Modifier.weight(1f).fillMaxHeight()) {
-            Row(Modifier.padding(bottom = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                val nombres = listOf("Todos", "Vivos", "Sin caídos", "Caídos")
-                for ((i, n) in nombres.withIndex()) Fila(onClick = { filtro = i }, seleccionada = filtro == i) { Text(n, fontSize = 16.sp, color = Colores.Texto) }
-                Fila(onClick = { orden = 1 - orden }) { Text(if (orden == 0) "Orden: mejores primero" else "Orden: A-Z", fontSize = 16.sp, color = Colores.Apagado) }
-            }
-            ListaCanales(filtrada, datos.cambios, datos.alFavorito, Modifier.weight(1f).fillMaxWidth())
-        }
+        ListaCanales(filtrada, datos.cambios, datos.alFavorito, Modifier.weight(1f).fillMaxWidth())
     }
 }
 
