@@ -76,7 +76,7 @@ fun Fila(
             .background(if (foco) Color.White.copy(alpha = 0.16f) else if (seleccionada) Color.White.copy(alpha = 0.10f) else Color.Transparent)
             .border(2.dp, if (foco) Color.White else Color.Transparent, forma)
             .clickable(interactionSource = fuente, indication = null, onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .padding(horizontal = 14.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = contenido,
     )
