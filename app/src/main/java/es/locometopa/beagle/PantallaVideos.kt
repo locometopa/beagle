@@ -80,9 +80,9 @@ fun PantallaVideos(conexion: Conexion, servidorVacio: Boolean) {
 
     Column(Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 40.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val c = abierta
-        Text(if (c == null) "Vídeos" else c.nombre + if (ruta.isNotEmpty()) " › " + ruta.last().substringAfterLast('/') else "", fontSize = 34.sp, color = Colores.Texto)
+        Text(if (c == null) "Vídeos" else c.nombre + if (ruta.isNotEmpty()) " › " + ruta.last().substringAfterLast('/') else "", fontSize = 34.sp, color = Tinta.texto)
         when {
-            servidorVacio -> Text("Primero pon la dirección del servidor de casa en Ajustes.", fontSize = 20.sp, color = Colores.Texto)
+            servidorVacio -> Text("Primero pon la dirección del servidor de casa en Ajustes.", fontSize = 20.sp, color = Tinta.texto)
             error != null -> {
                 Text(error ?: "", fontSize = 18.sp, color = Colores.Mal)
                 Button(onClick = { if (c == null) cargarCarpetas() else abrir(c, ruta) }) { Text("Reintentar") }
@@ -90,12 +90,12 @@ fun PantallaVideos(conexion: Conexion, servidorVacio: Boolean) {
             cargando -> Text("Cargando…", fontSize = 20.sp, color = Colores.Aviso)
             c == null -> {
                 val lista = carpetas.orEmpty()
-                if (lista.isEmpty()) Text("El servidor no tiene carpetas de vídeo. Se añaden desde su panel.", fontSize = 18.sp, color = Colores.Apagado)
+                if (lista.isEmpty()) Text("El servidor no tiene carpetas de vídeo. Se añaden desde su panel.", fontSize = 18.sp, color = Tinta.suave)
                 LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     items(lista, key = { it.id }) { carpeta ->
                         Fila(onClick = { abrir(carpeta, emptyList()) }, modifier = Modifier.fillMaxWidth()) {
                             Column(Modifier.weight(1f)) {
-                                Text("📁  " + carpeta.nombre, fontSize = 20.sp, color = Colores.Texto)
+                                Text("📁  " + carpeta.nombre, fontSize = 20.sp, color = Tinta.texto)
                                 val estado = when {
                                     !carpeta.existe -> "no se encuentra: ¿está montada?"
                                     carpeta.encendido == false -> "el equipo está apagado"
@@ -109,20 +109,20 @@ fun PantallaVideos(conexion: Conexion, servidorVacio: Boolean) {
             }
             else -> {
                 val l = listado
-                if (l == null || (l.subcarpetas.isEmpty() && l.videos.isEmpty())) Text("Esta carpeta está vacía.", fontSize = 18.sp, color = Colores.Apagado)
+                if (l == null || (l.subcarpetas.isEmpty() && l.videos.isEmpty())) Text("Esta carpeta está vacía.", fontSize = 18.sp, color = Tinta.suave)
                 else {
                     val canales = l.videos.map { comoCanal(c, it) }
                     LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         items(l.subcarpetas, key = { "d-${it.second}" }) { (nombre, sub) ->
                             Fila(onClick = { abrir(c, ruta + sub) }, modifier = Modifier.fillMaxWidth()) {
-                                Text("📁  $nombre", fontSize = 20.sp, color = Colores.Texto)
+                                Text("📁  $nombre", fontSize = 20.sp, color = Tinta.texto)
                             }
                         }
                         items(l.videos.indices.toList(), key = { "v-${l.videos[it].sub}" }) { i ->
                             val v = l.videos[i]
                             Fila(onClick = { abrirReproductor(contexto, canales, i) }, modifier = Modifier.fillMaxWidth()) {
-                                Text(Modelo.limpio(v.nombre), fontSize = 20.sp, color = Colores.Texto, modifier = Modifier.weight(1f))
-                                Text(tamano(v.bytes), fontSize = 14.sp, color = Colores.Apagado)
+                                Text(Modelo.limpio(v.nombre), fontSize = 20.sp, color = Tinta.texto, modifier = Modifier.weight(1f))
+                                Text(tamano(v.bytes), fontSize = 14.sp, color = Tinta.suave)
                             }
                         }
                     }

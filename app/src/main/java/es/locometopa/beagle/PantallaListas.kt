@@ -61,9 +61,9 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
     }
 
     Column(Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 40.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Listas", fontSize = 34.sp, color = Colores.Texto)
+        Text("Listas", fontSize = 34.sp, color = Tinta.texto)
         if (servidorVacio) {
-            Text("Primero pon la dirección del servidor de casa en Ajustes.", fontSize = 20.sp, color = Colores.Texto)
+            Text("Primero pon la dirección del servidor de casa en Ajustes.", fontSize = 20.sp, color = Tinta.texto)
             return@Column
         }
         mensaje?.let { (bien, t) -> Text(t, fontSize = 16.sp, color = if (bien) Colores.Aviso else Colores.Mal) }
@@ -71,8 +71,8 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
         LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             item(key = "nueva") {
                 Column(Modifier.padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Añadir una lista", fontSize = 22.sp, color = Colores.Texto)
-                    Text("La baja el servidor: vale M3U, JSON de AceList, Xtream o MylinkPaste.", fontSize = 14.sp, color = Colores.Apagado)
+                    Text("Añadir una lista", fontSize = 22.sp, color = Tinta.texto)
+                    Text("La baja el servidor: vale M3U, JSON de AceList, Xtream o MylinkPaste.", fontSize = 14.sp, color = Tinta.suave)
                     CampoTexto(url, { url = it }, "Pulsa OK y escribe la dirección (http://…)", Modifier.fillMaxWidth(), KeyboardType.Uri)
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {
                         CampoTexto(nombreLista, { nombreLista = it }, "Nombre (opcional)", Modifier.weight(1f))
@@ -89,7 +89,7 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
                 }
             }
             if (listas.isEmpty()) item(key = "vacio") {
-                Text("Todavía no hay listas. Añade una arriba.", fontSize = 18.sp, color = Colores.Apagado)
+                Text("Todavía no hay listas. Añade una arriba.", fontSize = 18.sp, color = Tinta.suave)
             }
             items(listas, key = { "l-${it.id}" }) { l ->
                 Column {
@@ -102,11 +102,11 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
                         }, modifier = Modifier.weight(1f)) {
                             Text(if (l.encendida) "●" else "○", fontSize = 22.sp, color = if (l.encendida) Colores.Bien else Colores.Apagado)
                             Column(Modifier.padding(start = 14.dp).weight(1f)) {
-                                Text(l.nombre, fontSize = 20.sp, color = Colores.Texto)
-                                Text((if (l.encendida) "encendida" else "apagada") + " · ${l.canales} canales" + if (l.deSerie) " · de serie" else "", fontSize = 14.sp, color = Colores.Apagado)
+                                Text(l.nombre, fontSize = 20.sp, color = Tinta.texto)
+                                Text((if (l.encendida) "encendida" else "apagada") + " · ${l.canales} canales" + if (l.deSerie) " · de serie" else "", fontSize = 14.sp, color = Tinta.suave)
                             }
                         }
-                        Fila(onClick = { renombrando = l.id; nombreNuevo = l.nombre }) { Text("✎", fontSize = 22.sp, color = Colores.Apagado) }
+                        Fila(onClick = { renombrando = l.id; nombreNuevo = l.nombre }) { Text("✎", fontSize = 22.sp, color = Tinta.suave) }
                     }
                     if (renombrando == l.id) {
                         Row(Modifier.padding(start = 16.dp, top = 4.dp), horizontalArrangement = Arrangement.spacedBy(16.dp), verticalAlignment = Alignment.CenterVertically) {

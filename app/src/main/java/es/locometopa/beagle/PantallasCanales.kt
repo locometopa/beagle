@@ -48,7 +48,7 @@ fun abrirReproductor(contexto: Context, canales: List<Canal>, indice: Int) {
 @Composable
 fun ListaCanales(canales: List<Canal>, cambios: Int, alFavorito: (Canal) -> Unit, modifier: Modifier = Modifier) {
     if (canales.isEmpty()) {
-        Text("No hay canales aquí.", fontSize = 18.sp, color = Colores.Apagado, modifier = modifier.padding(16.dp))
+        Text("No hay canales aquí.", fontSize = 18.sp, color = Tinta.suave, modifier = modifier.padding(16.dp))
         return
     }
     LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -94,7 +94,7 @@ private fun opcionesCanal(contexto: android.content.Context, lista: List<Canal>,
         .setNegativeButton("Cerrar", null).show()
 }
 
-/** Una fila de canal como la de HomeTV: punto, nombre y categoría, estado a la derecha y ⋮ para las opciones. */
+/** Una fila de canal: cuadrado con iniciales, nombre y categoría, estado a la derecha y ⋮ para las opciones. */
 @Composable
 fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) -> Unit) {
     val contexto = LocalContext.current
@@ -103,58 +103,23 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
     val (estado, colorEstado) = estadoTexto(c)
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Fila(onClick = { abrirReproductor(contexto, lista, lista.indexOf(c)) }, modifier = Modifier.weight(1f)) {
-            Box(Modifier.width(12.dp).height(12.dp).background(Color(colorEstado), RoundedCornerShape(6.dp)))
+            Monograma(c.titulo, 46.dp)
             Column(Modifier.padding(start = 14.dp).weight(1f)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (fav) Text("★ ", fontSize = 19.sp, color = Colores.Acento)
-                    Text(c.titulo, fontSize = 20.sp, color = if (c.estado == 2) Colores.Apagado else Colores.Texto, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
-                    if (c.enlaces.size > 1) Text("  ${c.enlaces.size} enlaces", fontSize = 13.sp, color = Colores.Apagado)
+                    if (fav) Text("★ ", fontSize = 19.sp, color = Tinta.acento)
+                    Text(c.titulo, fontSize = 20.sp, color = if (c.estado == 2) Tinta.suave else Tinta.texto, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                    if (c.enlaces.size > 1) Text("  ${c.enlaces.size} enlaces", fontSize = 13.sp, color = Tinta.suave)
                 }
-                Text(c.categoria.ifEmpty { "Sin categoría" }, fontSize = 14.sp, color = Colores.Apagado, maxLines = 1)
+                val sub = c.ahora.ifEmpty { c.categoria.ifEmpty { "Sin categoría" } }
+                Text(sub, fontSize = 14.sp, color = Tinta.suave, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            if (c.ahora.isNotEmpty()) Text(c.ahora, fontSize = 14.sp, color = Colores.Apagado, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(220.dp).padding(end = 12.dp))
-            Text(estado, fontSize = 16.sp, color = Color(colorEstado), fontWeight = FontWeight.SemiBold, modifier = Modifier.width(130.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            Text(estado, fontSize = 16.sp, color = Color(colorEstado).enFila(), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 12.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
         }
         Fila(onClick = { opcionesCanal(contexto, lista, c, alFavorito) }) {
-            Text("⋮", fontSize = 24.sp, color = Colores.Apagado)
+            Text("⋮", fontSize = 24.sp, color = Tinta.suave)
         }
     }
 }
-
-
-/** Inicio: lo que se emite ahora, lo que viene, lo último que viste y tus favoritos. */
-@Composable
-fun PantallaInicio(datos: Datos, ajustes: Ajustes, irAAjustes: () -> Unit) {
-    val cat = datos.catalogo
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        when {
-            datos.servidorVacio -> {
-                Text("Todavía no has puesto la dirección del servidor de casa.", fontSize = 20.sp, color = Colores.Texto)
-                Button(onClick = irAAjustes) { Text("Ir a Ajustes") }
-            }
-            cat == null && datos.cargando -> Text("Cargando canales…", fontSize = 20.sp, color = Colores.Aviso)
-            cat == null -> {
-                Text(datos.error ?: "No se han podido cargar los canales", fontSize = 20.sp, color = Colores.Mal)
-                Button(onClick = datos.recargar) { Text("Reintentar") }
-            }
-            else -> {
-                val estado = when {
-                    datos.cargando -> "Actualizando…"
-                    datos.error != null -> "Sin conexión con el servidor: se usan los canales guardados"
-                    else -> "${cat.canales.size} canales"
-                }
-                Text(estado, fontSize = 16.sp, color = if (datos.error != null) Colores.Aviso else Colores.Apagado)
-                ContenidoPortada(datos, cat, ajustes)
-            }
-        }
-    }
-}
-
-@Composable
-private fun Titulo(texto: String) {
-    Text(texto, fontSize = 22.sp, color = Colores.Texto, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp, start = 16.dp))
-}
-
 
 /** Canales en filas: arriba las categorías, debajo los filtros y el orden, y luego la lista a todo el ancho. */
 @Composable
@@ -165,37 +130,37 @@ fun PantallaCanales(datos: Datos) {
     var orden by remember { mutableStateOf(0) }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (cat == null) {
-            Text(if (datos.cargando) "Cargando canales…" else datos.error ?: "Sin canales", fontSize = 20.sp, color = Colores.Apagado)
+            Text(if (datos.cargando) "Cargando canales…" else datos.error ?: "Sin canales", fontSize = 20.sp, color = Tinta.suave)
             return@Column
         }
         val categorias = listOf("Todos", "★ Favoritos") + cat.categorias
         val directo = cat.eventos.filter { it.vivo && !it.aplazado && cat.canalesDe(it).isNotEmpty() }.take(8)
         val contexto = LocalContext.current
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Canales", fontSize = 28.sp, color = Colores.Texto, fontWeight = FontWeight.Bold)
-            Text("  ${cat.canales.size}", fontSize = 18.sp, color = Colores.Apagado)
+            Text("Canales", fontSize = 28.sp, color = Colores.Texto, fontFamily = Titulos, fontWeight = FontWeight.SemiBold)
+            Text("  ${cat.canales.size}", fontSize = 18.sp, color = Tinta.suave)
         }
         if (directo.isNotEmpty()) {
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { Text("EN DIRECTO", fontSize = 14.sp, color = Colores.Bien, fontWeight = FontWeight.Bold, modifier = Modifier.padding(end = 4.dp, top = 12.dp)) }
                 items(directo, key = { "d-${it.id}" }) { e ->
                     Fila(onClick = { abrirEvento(contexto, cat, e) }) {
-                        Text(e.titulo, fontSize = 15.sp, color = Colores.Texto, maxLines = 1)
+                        Text(e.titulo, fontSize = 15.sp, color = Tinta.texto, maxLines = 1)
                     }
                 }
             }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             items(categorias, key = { it }) { nombre ->
-                Fila(onClick = { elegida = nombre }, seleccionada = nombre == elegida) { Text(nombre, fontSize = 17.sp, color = Colores.Texto) }
+                Fila(onClick = { elegida = nombre }, seleccionada = nombre == elegida) { Text(nombre, fontSize = 17.sp, color = Tinta.texto) }
             }
         }
         LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             val nombres = listOf("Todos", "Vivos", "Sin caídos", "Caídos")
             items(nombres.size) { i ->
-                Fila(onClick = { filtro = i }, seleccionada = filtro == i) { Text(nombres[i], fontSize = 15.sp, color = Colores.Apagado) }
+                Fila(onClick = { filtro = i }, seleccionada = filtro == i) { Text(nombres[i], fontSize = 15.sp, color = Tinta.suave) }
             }
-            item { Fila(onClick = { orden = 1 - orden }) { Text(if (orden == 0) "Orden: mejores primero" else "Orden: A-Z", fontSize = 15.sp, color = Colores.Acento) } }
+            item { Fila(onClick = { orden = 1 - orden }) { Text(if (orden == 0) "Orden: mejores primero" else "Orden: A-Z", fontSize = 15.sp, color = Tinta.acento) } }
         }
         val lista = when (elegida) {
             "Todos" -> cat.canales
@@ -233,19 +198,19 @@ fun PantallaBuscar(datos: Datos, conexion: Conexion) {
             val eventos = cat.eventos.filter { !it.aplazado && Modelo.sinTildes(it.titulo + " " + it.competicion).contains(q) }.take(12)
             LazyColumn(Modifier.fillMaxSize(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (eventos.isNotEmpty()) {
-                    item(key = "t-ev") { Text("Agenda", fontSize = 20.sp, color = Colores.Acento, modifier = Modifier.padding(start = 8.dp, top = 4.dp)) }
+                    item(key = "t-ev") { Text("Agenda", fontSize = 20.sp, color = Tinta.acento, modifier = Modifier.padding(start = 8.dp, top = 4.dp)) }
                     items(eventos, key = { "ev-${it.id}" }) { e -> FilaEvento(e, cat) { abrirEvento(contexto, cat, e) } }
                 }
                 if (canales.isNotEmpty()) {
-                    item(key = "t-ca") { Text("Canales", fontSize = 20.sp, color = Colores.Acento, modifier = Modifier.padding(start = 8.dp, top = 8.dp)) }
+                    item(key = "t-ca") { Text("Canales", fontSize = 20.sp, color = Tinta.acento, modifier = Modifier.padding(start = 8.dp, top = 8.dp)) }
                     items(canales, key = { "ca-${it.clave}" }) { c -> FilaCanal(canales, c, datos.cambios, datos.alFavorito) }
                 }
                 if (apagados.isNotEmpty()) {
                     item(key = "t-ap") { Text("En listas apagadas (actívalas en Ajustes › Listas)", fontSize = 20.sp, color = Colores.Aviso, modifier = Modifier.padding(start = 8.dp, top = 8.dp)) }
                     items(apagados.size, key = { "ap-$it" }) { i ->
                         Column(Modifier.padding(start = 16.dp, top = 2.dp)) {
-                            Text(apagados[i].first, fontSize = 18.sp, color = Colores.Texto)
-                            Text(apagados[i].second, fontSize = 13.sp, color = Colores.Apagado)
+                            Text(apagados[i].first, fontSize = 18.sp, color = Tinta.texto)
+                            Text(apagados[i].second, fontSize = 13.sp, color = Tinta.suave)
                         }
                     }
                 }

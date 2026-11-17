@@ -60,22 +60,22 @@ fun FilaEvento(e: Evento, cat: Catalogo, onClick: () -> Unit) {
     Fila(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Box(Modifier.width(110.dp)) {
             when {
-                e.aplazado -> Text("Aplazado", fontSize = 16.sp, color = Colores.Aviso)
-                e.vivo -> Text("EN DIRECTO", fontSize = 16.sp, color = Colores.Bien)
-                else -> Text(FORMATO_HORA.format(Date(e.inicio)), fontSize = 22.sp, color = Colores.Texto)
+                e.aplazado -> Text("Aplazado", fontSize = 16.sp, color = Colores.Aviso.enFila())
+                e.vivo -> Text("EN DIRECTO", fontSize = 16.sp, color = Colores.Bien.enFila())
+                else -> Text(FORMATO_HORA.format(Date(e.inicio)), fontSize = 22.sp, color = Tinta.texto)
             }
         }
         Column(Modifier.weight(1f)) {
-            Text(e.titulo, fontSize = 20.sp, color = Colores.Texto)
+            Text(e.titulo, fontSize = 20.sp, color = Tinta.texto)
             val sub = listOf(e.deporte, e.competicion).filter { it.isNotEmpty() && it != e.titulo }.joinToString(" · ")
-            if (sub.isNotEmpty()) Text(sub, fontSize = 14.sp, color = Colores.Apagado)
+            if (sub.isNotEmpty()) Text(sub, fontSize = 14.sp, color = Tinta.suave)
         }
         val (txt, color) = when {
-            mios.isNotEmpty() -> (if (mios.size == 1) mios[0].titulo else "${mios[0].titulo} +${mios.size - 1}") to Colores.Bien
-            e.posible -> "posible canal" to Colores.Aviso
-            e.apagada -> "en una lista apagada" to Colores.Aviso
-            e.enAbierto -> "en abierto" to Colores.Apagado
-            else -> "sin canal" to Colores.Apagado
+            mios.isNotEmpty() -> (if (mios.size == 1) mios[0].titulo else "${mios[0].titulo} +${mios.size - 1}") to Colores.Bien.enFila()
+            e.posible -> "posible canal" to Colores.Aviso.enFila()
+            e.apagada -> "en una lista apagada" to Colores.Aviso.enFila()
+            e.enAbierto -> "en abierto" to Colores.Apagado.enFila()
+            else -> "sin canal" to Colores.Apagado.enFila()
         }
         Text(txt, fontSize = 15.sp, color = color)
     }
@@ -89,11 +89,11 @@ fun PantallaAgenda(datos: Datos) {
     var filtro by remember { mutableStateOf("Todos") }
     Row(Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 32.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
         if (cat == null) {
-            Text(if (datos.cargando) "Cargando…" else datos.error ?: "Sin datos", fontSize = 20.sp, color = Colores.Apagado)
+            Text(if (datos.cargando) "Cargando…" else datos.error ?: "Sin datos", fontSize = 20.sp, color = Tinta.suave)
             return@Row
         }
         if (cat.eventos.isEmpty()) {
-            Text("El servidor no tiene agenda ahora mismo.", fontSize = 20.sp, color = Colores.Apagado)
+            Text("El servidor no tiene agenda ahora mismo.", fontSize = 20.sp, color = Tinta.suave)
             return@Row
         }
         val deportes = cat.eventos.map { it.deporte }.filter { it.isNotEmpty() }.distinct().sorted()
@@ -101,7 +101,7 @@ fun PantallaAgenda(datos: Datos) {
         LazyColumn(Modifier.width(260.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(filtros, key = { it }) { f ->
                 Fila(onClick = { filtro = f }, modifier = Modifier.fillMaxWidth(), seleccionada = f == filtro) {
-                    Text(f, fontSize = 18.sp, color = Colores.Texto)
+                    Text(f, fontSize = 18.sp, color = Tinta.texto)
                 }
             }
         }
@@ -121,11 +121,11 @@ fun PantallaAgenda(datos: Datos) {
             if (ultimoDia == 0L || !mismoDia(ultimoDia, e.inicio)) { filas.add(diaTexto(e.inicio)); ultimoDia = e.inicio }
             filas.add(e)
         }
-        if (filas.isEmpty()) Text("No hay eventos con este filtro.", fontSize = 18.sp, color = Colores.Apagado)
+        if (filas.isEmpty()) Text("No hay eventos con este filtro.", fontSize = 18.sp, color = Tinta.suave)
         else LazyColumn(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             items(filas, key = { if (it is Evento) "e-${it.id}" else "d-$it" }) { f ->
                 if (f is Evento) FilaEvento(f, cat) { abrirEvento(contexto, cat, f) }
-                else Text(f as String, fontSize = 20.sp, color = Colores.Acento, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp, start = 16.dp))
+                else Text(f as String, fontSize = 20.sp, color = Tinta.acento, modifier = Modifier.padding(top = 14.dp, bottom = 4.dp, start = 16.dp))
             }
         }
     }

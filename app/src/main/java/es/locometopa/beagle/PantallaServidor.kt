@@ -45,8 +45,8 @@ fun PantallaAjustes(conexion: Conexion, ajustes: Ajustes, servidorVacio: Boolean
     var pestana by remember { mutableStateOf(0) }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.padding(start = 24.dp, top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Fila(onClick = { pestana = 0 }, seleccionada = pestana == 0) { Text("General", fontSize = 20.sp, color = Colores.Texto) }
-            Fila(onClick = { pestana = 1 }, seleccionada = pestana == 1) { Text("Listas", fontSize = 20.sp, color = Colores.Texto) }
+            Fila(onClick = { pestana = 0 }, seleccionada = pestana == 0) { Text("General", fontSize = 20.sp, color = Tinta.texto) }
+            Fila(onClick = { pestana = 1 }, seleccionada = pestana == 1) { Text("Listas", fontSize = 20.sp, color = Tinta.texto) }
         }
         if (pestana == 0) AjustesGenerales(conexion, ajustes, alCambiarServidor)
         else PantallaListas(conexion, servidorVacio, alCambiarServidor)
