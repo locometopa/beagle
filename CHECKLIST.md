@@ -97,7 +97,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [ ] Logotipos de los canales (`logos`)
 - [~] Nombres limpios: los `_` pasan a espacios
 - [~] Enlaces repetidos agrupados en un canal («3 enlaces»); OK reproduce el mejor (`agrupar`, `agenda.js: claveCanal`)
-- [~] Filtros: vivos, sin caídos, caídos; por categoría (falta por lista)
+- [~] Filtros: vivos, sin caídos, caídos; por categoría y por lista (0.19.1)
 - [~] Orden recomendado y A-Z
 - [~] Ocultar los caídos (`hideDead`) en «Todos» (0.18.0)
 - [ ] Ficha del canal y ajuste «OK abre la ficha o reproduce» (`okAction`)

@@ -165,6 +165,8 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
     var elegida by remember { mutableStateOf("Todos") }
     var filtro by remember { mutableStateOf(0) }
     var orden by remember { mutableStateOf(0) }
+    var listaElegida by remember { mutableStateOf<String?>(null) }
+    val listasServidor = remember(datos.catalogo) { conexion.listas() }
     val alcance = androidx.compose.runtime.rememberCoroutineScope()
     var prog by remember { mutableStateOf<Comprobacion?>(null) }
     // Comprobación de canales del servidor: se mira al abrir (cada 3 s mientras corre) y al acabar se recargan los canales
@@ -226,17 +228,22 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
             }
             item { Chip(if (orden == 0) "Orden: mejores primero ▾" else "Orden: A-Z ▾", false, { orden = 1 - orden }, tam = 15) }
         }
+        if (listasServidor.size > 1) LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            item { Chip("Todas las listas", listaElegida == null, { listaElegida = null }, tam = 15) }
+            items(listasServidor, key = { "li-${it.id}" }) { l -> Chip(l.nombre, listaElegida == l.id, { listaElegida = l.id }, tam = 15) }
+        }
+        val idsLista = remember(listaElegida, datos.catalogo) { listaElegida?.let { conexion.idsDeLista(it) } }
         val lista = when (elegida) {
             "Todos" -> if (ajustes.ocultarCaidos) cat.canales.filter { it.estado < 2 } else cat.canales
             "★ Favoritos" -> cat.canales.filter { it.favorito }
             else -> cat.canales.filter { it.categoria == elegida }
         }
-        val filtrada = when (filtro) {
-            1 -> lista.filter { it.estado == 0 }
-            2 -> lista.filter { it.estado < 2 }
-            3 -> lista.filter { it.estado == 2 }
-            else -> lista
-        }.let { l -> if (orden == 1) l.sortedBy { it.buscable } else l.sortedBy { it.estado } }
+        val filtrada = (if (idsLista == null) lista else lista.filter { c -> c.enlaces.any { it.id in idsLista } }).let { base -> when (filtro) {
+            1 -> base.filter { it.estado == 0 }
+            2 -> base.filter { it.estado < 2 }
+            3 -> base.filter { it.estado == 2 }
+            else -> base
+        } }.let { l -> if (orden == 1) l.sortedBy { it.buscable } else l.sortedBy { it.estado } }
         ListaCanales(filtrada, datos.cambios, datos.alFavorito, Modifier.weight(1f).fillMaxWidth())
     }
 }

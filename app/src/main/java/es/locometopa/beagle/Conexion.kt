@@ -140,6 +140,18 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         if (!hecho) throw java.io.IOException("Esa lista ya no existe")
     }
 
+    /** Ids de los canales (enlaces) que vienen de una lista, según la copia local. */
+    fun idsDeLista(id: String): Set<String> {
+        val cs = local.leer()?.datos?.optJSONArray("channels") ?: return emptySet()
+        val out = HashSet<String>()
+        for (i in 0 until cs.length()) {
+            val c = cs.optJSONObject(i) ?: continue
+            val ls = c.optJSONArray("listas") ?: continue
+            for (j in 0 until ls.length()) if (ls.optString(j, "") == id) { out.add(c.optString("id", "")); break }
+        }
+        return out
+    }
+
     /** Quita una lista y los canales que solo venían de ella (los que tienen otra lista, o se añadieron a mano, se quedan). */
     suspend fun quitarLista(id: String) = modificarDatos { datos ->
         val fuentes = datos.optJSONArray("sources") ?: throw java.io.IOException("No hay listas")
