@@ -144,13 +144,12 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
         Row(Modifier.fillMaxSize().background(Colores.Fondo)) {
             // Menú lateral, como el de HomeTV: fondo más oscuro, marca, píldoras y el estado abajo
             Column(Modifier.width(210.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 14.dp, vertical = 20.dp)) {
-                Row(Modifier.padding(start = 8.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
-                    androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.logo), null, Modifier.size(52.dp).clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)))
-                    Column(Modifier.padding(start = 10.dp)) {
-                        Row { Text("Beagle", fontSize = 26.sp, color = Colores.Texto, fontWeight = FontWeight.Bold); Text(" TV", fontSize = 26.sp, color = Colores.Acento, fontWeight = FontWeight.Bold) }
-                        Text("tu tele en casa", fontSize = 12.sp, color = Colores.Apagado)
-                    }
-                }
+                // El logo completo tal cual (perro y «Beagle TV» en una línea), solo reducido para que quepa
+                androidx.compose.foundation.Image(
+                    androidx.compose.ui.res.painterResource(R.drawable.logo_completo), "Beagle TV",
+                    Modifier.fillMaxWidth().padding(bottom = 18.dp),
+                    contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                )
                 for (s in Seccion.entries) {
                     ItemMenu(s.titulo, s == seccion, { seccion = s; ajustes.ultimaSeccion = s.name }, Modifier.fillMaxWidth())
                     Spacer(Modifier.height(4.dp))
