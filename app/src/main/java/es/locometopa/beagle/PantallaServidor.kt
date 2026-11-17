@@ -41,7 +41,20 @@ private val Aviso = Color(0xFFE6B422)
 
 /** Ajustes: servidor de casa (dirección, búsqueda en la red, estado), motor, versión. */
 @Composable
-fun PantallaAjustes(conexion: Conexion, ajustes: Ajustes, alCambiarServidor: () -> Unit) {
+fun PantallaAjustes(conexion: Conexion, ajustes: Ajustes, servidorVacio: Boolean, alCambiarServidor: () -> Unit) {
+    var pestana by remember { mutableStateOf(0) }
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.padding(start = 24.dp, top = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Fila(onClick = { pestana = 0 }, seleccionada = pestana == 0) { Text("General", fontSize = 20.sp, color = Colores.Texto) }
+            Fila(onClick = { pestana = 1 }, seleccionada = pestana == 1) { Text("Listas", fontSize = 20.sp, color = Colores.Texto) }
+        }
+        if (pestana == 0) AjustesGenerales(conexion, ajustes, alCambiarServidor)
+        else PantallaListas(conexion, servidorVacio, alCambiarServidor)
+    }
+}
+
+@Composable
+private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServidor: () -> Unit) {
     val alcance = rememberCoroutineScope()
     var texto by remember { mutableStateOf(conexion.servidor()) }
     var estado by remember { mutableStateOf<Estado>(if (conexion.servidor().isEmpty()) Estado.SinServidor else Estado.Comprobando) }
@@ -70,8 +83,8 @@ fun PantallaAjustes(conexion: Conexion, ajustes: Ajustes, alCambiarServidor: () 
     LaunchedEffect(Unit) { if (conexion.servidor().isNotEmpty()) comprobar() }
 
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 48.dp, vertical = 40.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 32.dp, vertical = 16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text("Ajustes", fontSize = 34.sp, color = MaterialTheme.colorScheme.onBackground)
         Text("Servidor de casa", fontSize = 22.sp, color = MaterialTheme.colorScheme.onBackground)

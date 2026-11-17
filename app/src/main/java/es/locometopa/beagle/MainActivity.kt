@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
@@ -50,7 +51,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private enum class Seccion(val titulo: String) {
-    Inicio("Inicio"), Canales("Canales"), Agenda("Agenda"), Videos("Vídeos"), Listas("Listas"), Buscar("Buscar"), Ajustes("Ajustes")
+    Inicio("Inicio"), Canales("Canales"), Agenda("Agenda"), Videos("Vídeos"), Buscar("Buscar"), Ajustes("Ajustes")
 }
 
 /** Lo que las pantallas de canales necesitan saber: los canales, si se están cargando, y cómo marcar un favorito. */
@@ -141,13 +142,17 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
         Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize().background(Colores.Fondo)) {
             // Menú lateral, como el de HomeTV: fondo más oscuro, marca, píldoras y el estado abajo
-            Column(Modifier.width(250.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 18.dp, vertical = 28.dp)) {
-                Row(Modifier.padding(start = 12.dp, bottom = 26.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text("Beagle", fontSize = 30.sp, color = Colores.Acento, fontWeight = FontWeight.Bold)
+            Column(Modifier.width(210.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 14.dp, vertical = 20.dp)) {
+                Row(Modifier.padding(start = 8.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.logo), null, Modifier.size(40.dp))
+                    Column(Modifier.padding(start = 10.dp)) {
+                        Text("Beagle", fontSize = 26.sp, color = Colores.Acento, fontWeight = FontWeight.Bold)
+                        Text("tu tele en casa", fontSize = 12.sp, color = Colores.Apagado)
+                    }
                 }
                 for (s in Seccion.entries) {
                     ItemMenu(s.titulo, s == seccion, { seccion = s; ajustes.ultimaSeccion = s.name }, Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(4.dp))
                 }
                 Spacer(Modifier.weight(1f))
                 PildoraEstado(motor.first, motor.second, Modifier.padding(start = 12.dp))
@@ -158,9 +163,8 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                     Seccion.Canales -> PantallaCanales(datos)
                     Seccion.Agenda -> PantallaAgenda(datos)
                     Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
-                    Seccion.Listas -> PantallaListas(conexion, servidorVacio) { recargar() }
                     Seccion.Buscar -> PantallaBuscar(datos)
-                    Seccion.Ajustes -> PantallaAjustes(conexion, ajustes) { recargar() }
+                    Seccion.Ajustes -> PantallaAjustes(conexion, ajustes, servidorVacio) { recargar() }
                 }
             }
         }

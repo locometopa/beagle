@@ -54,13 +54,13 @@ fun Tarjeta(
     val forma = RoundedCornerShape(18.dp)
     Column(
         modifier
-            .width(ancho).height(alto)
+            .then(if (ancho > 0.dp) Modifier.width(ancho) else Modifier).height(alto)
             .scale(escala)
             .clip(forma)
             .background(fondo)
             .border(3.dp, if (foco) Color.White else Color.Transparent, forma)
             .clickable(interactionSource = fuente, indication = null, onClick = onClick)
-            .padding(18.dp),
+            .padding(14.dp),
         verticalArrangement = Arrangement.SpaceBetween,
         content = contenido,
     )
@@ -71,14 +71,14 @@ fun Tarjeta(
 fun Cartel(e: Evento, cat: Catalogo, onClick: () -> Unit) {
     val mios = cat.canalesDe(e)
     val degradado = Brush.linearGradient(listOf(Color(0xFF3B4A1A), Color(0xFF2D2D2D)))
-    Tarjeta(onClick, ancho = 760.dp, alto = 210.dp, fondo = degradado) {
+    Tarjeta(onClick, ancho = 0.dp, alto = 170.dp, modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp), fondo = degradado) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             val (etiqueta, color) = if (e.vivo) "EN DIRECTO" to Colores.Bien else "A LAS ${HORA.format(Date(e.inicio))}" to Colores.Acento
             Text(etiqueta, fontSize = 16.sp, color = color, fontWeight = FontWeight.Bold)
             val sub = listOf(e.deporte, e.competicion).filter { it.isNotEmpty() && it != e.titulo }.joinToString(" · ")
             if (sub.isNotEmpty()) Text("   $sub", fontSize = 16.sp, color = Colores.Apagado)
         }
-        Text(e.titulo, fontSize = 34.sp, color = Colores.Texto, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+        Text(e.titulo, fontSize = 30.sp, color = Colores.Texto, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Text(
             if (mios.isEmpty()) "sin canal" else "▶  " + mios[0].titulo + if (mios.size > 1) "  +${mios.size - 1}" else "",
             fontSize = 20.sp, color = Colores.Acento, fontWeight = FontWeight.SemiBold,
@@ -89,7 +89,7 @@ fun Cartel(e: Evento, cat: Catalogo, onClick: () -> Unit) {
 @Composable
 private fun TarjetaEvento(e: Evento, cat: Catalogo, onClick: () -> Unit) {
     val mios = cat.canalesDe(e)
-    Tarjeta(onClick, ancho = 300.dp, alto = 130.dp) {
+    Tarjeta(onClick, ancho = 250.dp, alto = 110.dp) {
         Text(if (e.vivo) "EN DIRECTO" else HORA.format(Date(e.inicio)), fontSize = 15.sp, color = if (e.vivo) Colores.Bien else Colores.Acento, fontWeight = FontWeight.Bold)
         Text(e.titulo, fontSize = 19.sp, color = Colores.Texto, maxLines = 2, overflow = TextOverflow.Ellipsis)
         Text(mios.firstOrNull()?.titulo ?: "", fontSize = 14.sp, color = Colores.Apagado, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -98,7 +98,7 @@ private fun TarjetaEvento(e: Evento, cat: Catalogo, onClick: () -> Unit) {
 
 @Composable
 private fun TarjetaCanal(c: Canal, onClick: () -> Unit) {
-    Tarjeta(onClick, ancho = 190.dp, alto = 100.dp) {
+    Tarjeta(onClick, ancho = 165.dp, alto = 84.dp) {
         Text(c.categoria, fontSize = 13.sp, color = Colores.Apagado, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(c.titulo, fontSize = 19.sp, color = Colores.Texto, fontWeight = FontWeight.Medium, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
@@ -108,8 +108,8 @@ private fun TarjetaCanal(c: Canal, onClick: () -> Unit) {
 @Composable
 fun <T> FilaTarjetas(titulo: String, elementos: List<T>, tarjeta: @Composable (Int, T) -> Unit) {
     if (elementos.isEmpty()) return
-    Text(titulo, fontSize = 22.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 14.dp, bottom = 8.dp, start = 4.dp))
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 10.dp, horizontal = 8.dp)) {
+    Text(titulo, fontSize = 22.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 6.dp, bottom = 2.dp, start = 8.dp))
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 8.dp, horizontal = 8.dp)) {
         items(elementos.size) { i -> tarjeta(i, elementos[i]) }
     }
 }

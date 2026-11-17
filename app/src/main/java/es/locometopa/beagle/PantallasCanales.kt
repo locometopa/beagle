@@ -78,8 +78,7 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
 @Composable
 fun PantallaInicio(datos: Datos, ajustes: Ajustes, irAAjustes: () -> Unit) {
     val cat = datos.catalogo
-    Column(Modifier.fillMaxSize().padding(horizontal = 48.dp, vertical = 40.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("Inicio", fontSize = 34.sp, color = Colores.Texto)
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         when {
             datos.servidorVacio -> {
                 Text("Todavía no has puesto la dirección del servidor de casa.", fontSize = 20.sp, color = Colores.Texto)
@@ -113,7 +112,7 @@ private fun Titulo(texto: String) {
 fun PantallaCanales(datos: Datos) {
     val cat = datos.catalogo
     var elegida by remember { mutableStateOf("Todos") }
-    Row(Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 32.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+    Row(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
         if (cat == null) {
             Text(if (datos.cargando) "Cargando canales…" else datos.error ?: "Sin canales", fontSize = 20.sp, color = Colores.Apagado)
             return@Row
