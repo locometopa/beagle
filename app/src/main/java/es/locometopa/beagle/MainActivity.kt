@@ -113,9 +113,10 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
 
         LaunchedEffect(Unit) { recargar() }
 
+        val contextoApp = androidx.compose.ui.platform.LocalContext.current
         // Panel del móvil: si estaba encendido, vuelve a encenderse al abrir la app
         LaunchedEffect(Unit) {
-            PanelMovil.preparar(this@MainActivity, conexion, ajustes)
+            PanelMovil.preparar(contextoApp, conexion, ajustes)
             if (ajustes.movilActivo) {
                 try { kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { PanelMovil.encender() } } catch (e: Exception) { /* puerto ocupado */ }
             }
