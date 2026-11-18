@@ -47,6 +47,15 @@ fun abrirReproductor(contexto: Context, canales: List<Canal>, indice: Int) {
     contexto.startActivity(Intent(contexto, ReproductorActivity::class.java))
 }
 
+/** Diálogo de una sola elección (categoría, estado, lista…): el mando sube y baja, OK elige. */
+private fun elegirDe(contexto: Context, titulo: String, opciones: List<String>, actual: Int, alElegir: (Int) -> Unit) {
+    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        .setTitle(titulo)
+        .setSingleChoiceItems(opciones.toTypedArray(), actual) { d, i -> alElegir(i); d.dismiss() }
+        .setNegativeButton("Cancelar", null)
+        .show()
+}
+
 /** Lista de canales: OK reproduce; con ▶ se pasa a la estrella y OK marca o quita el favorito. */
 @Composable
 fun ListaCanales(canales: List<Canal>, cambios: Int, alFavorito: (Canal) -> Unit, modifier: Modifier = Modifier) {
@@ -244,7 +253,8 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
     var filtro by remember { mutableStateOf(0) }
     var orden by remember { mutableStateOf(0) }
     var listaElegida by remember { mutableStateOf<String?>(null) }
-    val listasServidor = remember(datos.catalogo) { conexion.listas() }
+    var versionListas by remember { mutableStateOf(0) }
+    val listasServidor = remember(datos.catalogo, versionListas) { conexion.listas() }
     val alcance = androidx.compose.runtime.rememberCoroutineScope()
     var prog by remember { mutableStateOf<Comprobacion?>(null) }
     // Comprobación de canales del servidor: se mira al abrir (cada 3 s mientras corre) y al acabar se recargan los canales
@@ -277,7 +287,7 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
             val activa = p?.activa == true
             Chip(
                 if (activa) "Comprobando ${p?.hechos}/${p?.total} · ${p?.vivos} vivos · parar" else "Comprobar canales",
-                activa,
+                activa, tam = 15, onClick =
                 {
                     val empezar = !activa
                     prog = Comprobacion(empezar, 0, p?.total ?: 0, 0, "")
@@ -295,21 +305,53 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
                 }
             }
         }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            items(categorias, key = { it }) { nombre ->
-                Chip(nombre, nombre == elegida, { elegida = nombre })
+        val nombresFiltro = listOf("Todos", "Solo vivos", "Sin caídos", "Solo caídos")
+        val nombresOrden = listOf("Mejores primero", "A-Z")
+        val nombreLista = listaElegida?.let { id -> listasServidor.firstOrNull { it.id == id }?.nombre } ?: "Todas"
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            item {
+                Selector("Categoría", elegida, elegida != "Todos", {
+                    elegirDe(contexto, "Categoría", categorias, categorias.indexOf(elegida)) { elegida = categorias[it] }
+                })
+            }
+            item {
+                Selector("Estado", nombresFiltro[filtro], filtro != 0, {
+                    elegirDe(contexto, "Estado de los canales", nombresFiltro, filtro) { filtro = it }
+                })
+            }
+            if (listasServidor.size > 1) item {
+                Selector("Lista", nombreLista, listaElegida != null, {
+                    val ops = listOf("Todas las listas") + listasServidor.map { it.nombre + " · ${it.canales}" + if (it.encendida) "" else " (apagada)" }
+                    val act = listaElegida?.let { id -> listasServidor.indexOfFirst { it.id == id } + 1 } ?: 0
+                    elegirDe(contexto, "Lista de canales", ops, act) { listaElegida = if (it == 0) null else listasServidor[it - 1].id }
+                })
+            }
+            item {
+                Selector("Orden", nombresOrden[orden], orden != 0, {
+                    elegirDe(contexto, "Orden", nombresOrden, orden) { orden = it }
+                })
             }
         }
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            val nombres = listOf("Todos", "Vivos", "Sin caídos", "Caídos")
-            items(nombres.size) { i ->
-                Chip(nombres[i], filtro == i, { filtro = i }, tam = 15)
-            }
-            item { Chip(if (orden == 0) "Orden: mejores primero ▾" else "Orden: A-Z ▾", false, { orden = 1 - orden }, tam = 15) }
-        }
-        if (listasServidor.size > 1) LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            item { Chip("Todas las listas", listaElegida == null, { listaElegida = null }, tam = 15) }
-            items(listasServidor, key = { "li-${it.id}" }) { l -> Chip(l.nombre, listaElegida == l.id, { listaElegida = l.id }, tam = 15) }
+        val apagadas = listasServidor.count { !it.encendida }
+        if (apagadas > 0) Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+            Text("$apagadas de ${listasServidor.size} listas apagadas: de ellas solo ves los favoritos.", fontSize = 14.sp, color = Colores.Aviso, modifier = Modifier.weight(1f).padding(start = 6.dp))
+            Chip("Encender o apagar listas…", false, {
+                val marcadas = BooleanArray(listasServidor.size) { listasServidor[it].encendida }
+                android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    .setTitle("Listas de canales (marcadas = encendidas)")
+                    .setMultiChoiceItems(listasServidor.map { it.nombre + " · ${it.canales}" }.toTypedArray(), marcadas) { _, i, v -> marcadas[i] = v }
+                    .setPositiveButton("Guardar") { _, _ ->
+                        alcance.launch {
+                            try {
+                                for ((i, l) in listasServidor.withIndex()) if (marcadas[i] != l.encendida) conexion.modificarLista(l.id) { it.put("enabled", marcadas[i]) }
+                                datos.recargar()
+                            } catch (e: Exception) {
+                                android.widget.Toast.makeText(contexto, e.message ?: "No se ha podido", android.widget.Toast.LENGTH_LONG).show()
+                            }
+                            versionListas++
+                        }
+                    }.setNegativeButton("Cancelar", null).show()
+            }, tam = 14)
         }
         val idsLista = remember(listaElegida, datos.catalogo) { listaElegida?.let { conexion.idsDeLista(it) } }
         val lista = when (elegida) {

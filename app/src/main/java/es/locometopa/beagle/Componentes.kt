@@ -122,6 +122,27 @@ fun Chip(texto: String, elegido: Boolean, onClick: () -> Unit, modifier: Modifie
     }
 }
 
+/** Selector desplegable en píldora: «Etiqueta  valor ▾». Resaltado si no está en su valor por defecto; con el foco, blanco. */
+@Composable
+fun Selector(etiqueta: String, valor: String, cambiado: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val fuente = remember { MutableInteractionSource() }
+    val foco by fuente.collectIsFocusedAsState()
+    val forma = RoundedCornerShape(999.dp)
+    Row(
+        modifier
+            .clip(forma)
+            .background(if (foco) Color.White else Colores.Panel)
+            .border(2.dp, if (foco) Color.White else if (cambiado) Colores.Acento else Color.Transparent, forma)
+            .clickable(interactionSource = fuente, indication = null, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text("$etiqueta  ", fontSize = 14.sp, color = if (foco) Colores.Fondo else Colores.Apagado, maxLines = 1)
+        Text(valor, fontSize = 16.sp, color = if (foco) Colores.Fondo else if (cambiado) Colores.Acento else Colores.Texto, fontWeight = FontWeight.SemiBold, maxLines = 1)
+        Text("  ▾", fontSize = 14.sp, color = if (foco) Colores.Fondo else Colores.Apagado)
+    }
+}
+
 /** Tarjeta con el foco del mando para las filas horizontales de Inicio (`.tarjeta` de HomeTV). */
 @Composable
 fun Tarjeta(onClick: () -> Unit, ancho: androidx.compose.ui.unit.Dp, alto: androidx.compose.ui.unit.Dp, contenido: @Composable androidx.compose.foundation.layout.ColumnScope.() -> Unit) {
