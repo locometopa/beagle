@@ -165,7 +165,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 - [~] Indicador de la VPN del servidor (WARP / Proton) en el menú y en Ajustes → Red (`/salud`)
 - [~] Cambiar la VPN del servidor desde la tele (`POST /api/vpn`)
-- [ ] Indicador de Cloudflare WARP en la tele y acceso a la app 1.1.1.1
+- [~] Indicador de la VPN del servidor (WARP/Proton) en el menú (0.29.0)
 
 ## 15. Ajustes
 

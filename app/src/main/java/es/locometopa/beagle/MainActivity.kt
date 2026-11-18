@@ -150,9 +150,14 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
 
         // Estado del motor para la píldora del menú: se comprueba al arrancar y cada minuto
         var motor by remember { mutableStateOf<Pair<String, androidx.compose.ui.graphics.Color>>("Motor…" to Colores.Aviso) }
+        var vpn by remember { mutableStateOf<Pair<String, androidx.compose.ui.graphics.Color>?>(null) }
         LaunchedEffect(servidorVacio, ajustes.motorEnTele) {
             while (!servidorVacio) {
                 motor = try { conexion.comprobarMotor(); "Motor listo" to Colores.Bien } catch (e: Exception) { "Motor sin respuesta" to Colores.Mal }
+                vpn = try {
+                    val sa = conexion.saludServidor()
+                    if (sa.vpn) (sa.vpnDetalle?.substringBefore(" · ")?.let { "VPN · $it" } ?: "VPN activa") to Colores.Bien else "Sin VPN" to Colores.Apagado
+                } catch (e: Exception) { null }
                 delay(60_000)
             }
             if (servidorVacio) motor = "Sin servidor" to Colores.Apagado
@@ -187,6 +192,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                 }
                 Text(hora, fontSize = 26.sp, color = Colores.Texto, modifier = Modifier.padding(start = 12.dp))
                 PildoraEstado(motor.first, motor.second, Modifier.padding(start = 12.dp))
+                vpn?.let { PildoraEstado(it.first, it.second, Modifier.padding(start = 12.dp)) }
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (seccion) {

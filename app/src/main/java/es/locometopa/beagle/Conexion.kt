@@ -299,6 +299,8 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
     suspend fun copiaAhora(): String = withContext(Dispatchers.IO) { Servidor.copiaAhora(servidorOError(), ajustes.identidad()) }
     suspend fun copias(): List<String> = withContext(Dispatchers.IO) { Servidor.copias(servidorOError()) }
     /** Borra lo guardado en esta tele (copias locales, vistos, última sección); lo del servidor no se toca. */
+    suspend fun saludServidor(): Salud = withContext(Dispatchers.IO) { Servidor.salud(servidorOError(), 4000) }
+
     suspend fun comprobacion(): Comprobacion = withContext(Dispatchers.IO) { Servidor.comprobacion(servidorOError()) }
     suspend fun comprobar(empezar: Boolean) = withContext(Dispatchers.IO) { Servidor.comprobar(servidorOError(), empezar) }
     suspend fun comprobarIds(ids: List<String>) = withContext(Dispatchers.IO) { Servidor.comprobarIds(servidorOError(), ids) }
