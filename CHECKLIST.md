@@ -46,7 +46,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 - [~] Media3 / ExoPlayer con la configuración que va bien en HomeTV (búfer 15/60/2,5/5 s)
 - [~] Formato TS o HLS, elegible; recordar los canales que solo van en HLS
-- [ ] Canales IPTV/HLS directos (sin motor)
+- [~] Canales IPTV/HLS directos (sin motor)
 - [~] Zapping ▲▼ y botones de canal, con espera de 0,7 s y rótulo del canal
 - [~] ◀▶ cambia de enlace del mismo canal
 - [~] Recuperación en tres pasos: reconectar, volver a pedir el canal, siguiente enlace; dos vueltas
@@ -57,7 +57,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Sonido no compatible (AC3…): pedirlo convertido al servidor (`/aac/abrir`) y recordarlo
 - [~] Vídeo no compatible (MPEG-2, HEVC 10 bits): pasar a otro enlace o avisar
 - [~] Calidad ligera fuera de casa (`/aac/abrir?calidad=baja`)
-- [ ] Canales IPTV por la pasarela VPN del servidor (`tvPorVpn`)
+- [~] Canales IPTV por la pasarela VPN del servidor (`tvPorVpn`) (0.26.0)
 - [ ] Apuntar el resultado de cada enlace (arrancó o no, peers) para ordenar mejor después
 - [~] Grabar el canal en el servidor (`/api/grabar`) desde las opciones del reproductor, con «⏺ REC» en el rótulo (0.18.3)
 - [~] Vídeos de carpetas: pausa, saltos de 10 s (◀▶) y 1 min (▲▼), siguiente al terminar (0.20.0)

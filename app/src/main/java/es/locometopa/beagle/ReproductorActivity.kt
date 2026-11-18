@@ -485,7 +485,19 @@ class ReproductorActivity : Activity() {
         if (e.directo) {
             // Canal de TV normal por internet: sin motor de Ace Stream
             if (anterior != null) red.execute { parar(anterior) }
-            reproducir(Emision(e.url, null, null), hls = false, mensaje = "Emisión en abierto", esperaMs = 30000)
+            val gen = generacion
+            red.execute {
+                // Si la VPN del servidor tiene pasarela y el ajuste lo permite, la emisión se pide por ella
+                var url = e.url
+                try {
+                    val quiere = CopiaLocal(applicationContext).leer()?.datos?.optJSONObject("ajustes")?.optBoolean("tvPorVpn", true) ?: true
+                    if (quiere && equipo.isNotEmpty() && Regex("(?i)https?://.*").matches(url) && Servidor.salud(equipo, 2500).pasarela) url = Servidor.porPasarela(equipo, url)
+                } catch (ex: Exception) { /* sin pasarela: directa */ }
+                ui.post {
+                    if (isFinishing || isDestroyed || gen != generacion) return@post
+                    reproducir(Emision(url, null, null), hls = false, mensaje = "Emisión en abierto", esperaMs = 30000)
+                }
+            }
             return
         }
         val pedirHls = formato == "hls"

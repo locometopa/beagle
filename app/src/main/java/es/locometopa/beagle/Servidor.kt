@@ -27,6 +27,8 @@ class Salud(
     val motor: String?, val vpn: Boolean, val apk: String?, val copias: Int, val ultimaCopia: String?,
     /** Cómo sale el servidor a internet con la VPN (proveedor · ciudad · país · IP), o null si está apagada. */
     val vpnDetalle: String? = null,
+    /** La VPN del servidor tiene pasarela para canales de TV por internet (IPTV/HLS). */
+    val pasarela: Boolean = false,
 )
 
 /** Una carpeta de vídeos del servidor (o de su NAS). La de grabaciones sale también aquí, con id «grabaciones». */
@@ -126,12 +128,20 @@ object Servidor {
         }
         return Salud(
             vpnDetalle = detalle,
+            pasarela = vpnActiva && (v as? JSONObject)?.optBoolean("pasarela", false) == true,
             motor = if (j.isNull("motor")) null else j.optString("motor", "").ifEmpty { null },
             vpn = vpnActiva,
             apk = if (j.isNull("apk")) null else j.optString("apk", "").ifEmpty { null },
             copias = j.optInt("copias", 0),
             ultimaCopia = if (j.isNull("ultimaCopia")) null else j.optString("ultimaCopia", "").ifEmpty { null },
         )
+    }
+
+    /** Dirección de una emisión de TV por internet a través de la pasarela VPN del servidor (conserva el nombre del archivo). */
+    fun porPasarela(equipo: String, url: String): String {
+        val n = url.substringBefore('?').substringAfterLast('/')
+        val nombre = if (Regex("[\\w.-]{1,80}").matches(n)) n else "emision"
+        return casa(equipo) + "/vpn/" + nombre + "?u=" + java.net.URLEncoder.encode(url, "UTF-8")
     }
 
     /** ¿Hay en esa dirección un servidor de casa de HomeTV? */
