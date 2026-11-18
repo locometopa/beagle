@@ -188,7 +188,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                 motor = try { conexion.comprobarMotor(); "Motor listo" to Colores.Bien } catch (e: Exception) { "Motor sin respuesta" to Colores.Mal }
                 vpn = try {
                     val sa = conexion.saludServidor()
-                    if (sa.vpn) (sa.vpnDetalle?.substringBefore(" · ")?.let { "VPN · $it" } ?: "VPN activa") to Colores.Bien else "Sin VPN" to Colores.Apagado
+                    if (sa.vpn) (sa.vpnDetalle?.substringBefore(" · ")?.let { if (it.contains("VPN", true)) it else "VPN · $it" } ?: "VPN activa") to Colores.Bien else "Sin VPN" to Colores.Apagado
                 } catch (e: Exception) { null }
                 delay(60_000)
             }
@@ -222,9 +222,9 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                     val formato = java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES"))
                     while (true) { hora = formato.format(java.util.Date()); delay(15_000) }
                 }
-                Text(hora, fontSize = 26.sp, color = Colores.Texto, modifier = Modifier.padding(start = 12.dp))
                 PildoraEstado(motor.first, motor.second, Modifier.padding(start = 12.dp))
                 vpn?.let { PildoraEstado(it.first, it.second, Modifier.padding(start = 12.dp)) }
+                Text(hora, fontSize = 26.sp, color = Colores.Texto, modifier = Modifier.padding(start = 12.dp, top = 6.dp))
             }
             Box(Modifier.weight(1f).fillMaxHeight()) {
                 when (seccion) {
