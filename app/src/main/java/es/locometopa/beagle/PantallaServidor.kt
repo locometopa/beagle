@@ -177,6 +177,10 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         var okFicha by remember { mutableStateOf(ajustes.okFicha) }
         FilaAjuste("OK sobre un canal", if (okFicha) "Abre su ficha" else "Reproduce", { okFicha = !okFicha; ajustes.okFicha = okFicha })
 
+        var okLargo by remember { mutableStateOf(ajustes.okLargo) }
+        FilaAjuste("Mantener OK pulsado en un canal", if (okLargo == "opciones") "Abre sus opciones" else "Marca favorito", { okLargo = if (okLargo == "opciones") "favorito" else "opciones"; ajustes.okLargo = okLargo })
+        Text("La tecla ≡ del mando abre siempre las opciones del canal, y OK reproduce.", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+
         var alAbrir by remember { mutableStateOf(ajustes.comprobarAlAbrir) }
         FilaAjuste("Comprobar los canales al abrir la app", if (alAbrir) "Sí" else "No", { alAbrir = !alAbrir; ajustes.comprobarAlAbrir = alAbrir })
 

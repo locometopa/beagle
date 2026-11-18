@@ -87,6 +87,11 @@ class Ajustes(private val contexto: Context) {
         get() = sp.getBoolean("okFicha", false)
         set(v) = sp.edit().putBoolean("okFicha", v).apply()
 
+    /** Qué hace mantener OK pulsado en un canal: «favorito» o «opciones». */
+    var okLargo: String
+        get() = if (sp.getString("okLargo", "favorito") == "opciones") "opciones" else "favorito"
+        set(v) = sp.edit().putString("okLargo", v).apply()
+
     var comprobarAlAbrir: Boolean
         get() = sp.getBoolean("comprobarAlAbrir", false)
         set(v) = sp.edit().putBoolean("comprobarAlAbrir", v).apply()

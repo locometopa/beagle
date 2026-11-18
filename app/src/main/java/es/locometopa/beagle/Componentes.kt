@@ -3,6 +3,8 @@ package es.locometopa.beagle
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Box
@@ -67,11 +69,14 @@ object Colores {
 }
 
 /** Una fila como `.row-btn` de HomeTV: fondo gris, y con el foco borde verde y fondo algo más claro. Sin sombras: así va fluido. */
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun Fila(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     seleccionada: Boolean = false,
+    onLongClick: (() -> Unit)? = null,
+    onMenu: (() -> Unit)? = null,
     contenido: @Composable RowScope.() -> Unit,
 ) {
     val fuente = remember { MutableInteractionSource() }
@@ -82,7 +87,14 @@ fun Fila(
             .clip(forma)
             .background(if (foco) Colores.PanelFoco else Colores.Panel)
             .border(2.dp, if (foco) Colores.Acento else if (seleccionada) Colores.Linea else Color.Transparent, forma)
-            .clickable(interactionSource = fuente, indication = null, onClick = onClick)
+            .onKeyEvent { e ->
+                // Tecla de menú (≡ del mando): opciones, distinto de OK
+                if (onMenu != null && e.key == androidx.compose.ui.input.key.Key.Menu) {
+                    if (e.type == androidx.compose.ui.input.key.KeyEventType.KeyUp) onMenu()
+                    true
+                } else false
+            }
+            .combinedClickable(interactionSource = fuente, indication = null, onClick = onClick, onLongClick = onLongClick)
             .padding(horizontal = 18.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = contenido,

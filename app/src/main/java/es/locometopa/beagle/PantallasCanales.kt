@@ -78,7 +78,9 @@ private fun TarjetaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito:
     val (estado, colorEstado) = estadoTexto(c)
     Fila(onClick = {
         if (aj.okFicha) opcionesCanal(contexto, lista, c, alFavorito) else abrirReproductor(contexto, lista, lista.indexOf(c))
-    }, modifier = Modifier.fillMaxWidth()) {
+    }, modifier = Modifier.fillMaxWidth(),
+        onLongClick = { if (aj.okLargo == "opciones") opcionesCanal(contexto, lista, c, alFavorito) else alFavorito(c) },
+        onMenu = { opcionesCanal(contexto, lista, c, alFavorito) }) {
         Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             LogoCanal(c.titulo, c.categoria, if (aj.logos) c.logo else "", Modifier.width(72.dp).height(48.dp))
             Text((if (fav) "★ " else "") + c.titulo, fontSize = 14.sp, color = if (c.estado == 2) Colores.Apagado else Colores.Texto,
@@ -176,7 +178,10 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
     val usarLogos = ajustesFila.logos
     val okFicha = ajustesFila.okFicha
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Fila(onClick = { if (okFicha) opcionesCanal(contexto, lista, c, alFavorito) else abrirReproductor(contexto, lista, lista.indexOf(c)) }, modifier = Modifier.weight(1f)) {
+        Fila(onClick = { if (okFicha) opcionesCanal(contexto, lista, c, alFavorito) else abrirReproductor(contexto, lista, lista.indexOf(c)) },
+            modifier = Modifier.weight(1f),
+            onLongClick = { if (ajustesFila.okLargo == "opciones") opcionesCanal(contexto, lista, c, alFavorito) else alFavorito(c) },
+            onMenu = { opcionesCanal(contexto, lista, c, alFavorito) }) {
             Box(Modifier.width(12.dp).height(12.dp).background(Color(colorEstado), RoundedCornerShape(6.dp)))
             if (usarLogos) LogoCanal(c.titulo, c.categoria, c.logo, Modifier.padding(start = 12.dp).width(46.dp).height(32.dp))
             Column(Modifier.padding(start = 14.dp).weight(1f)) {

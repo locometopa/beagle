@@ -271,8 +271,8 @@ class ReproductorActivity : Activity() {
     }
 
     private fun ayuda(): String =
-        if (esTele && esVideo()) "◀▶ ±10 s  ·  ▲▼ ±1 min  ·  OK pausa  ·  mantén OK: opciones  ·  Atrás: salir"
-        else if (esTele) "▲▼ canal  ·  ◀▶ enlace  ·  OK información  ·  mantén OK: opciones  ·  Atrás: salir"
+        if (esTele && esVideo()) "◀▶ ±10 s  ·  ▲▼ ±1 min  ·  OK pausa  ·  mantén OK: favorito  ·  ≡ opciones  ·  Atrás: salir"
+        else if (esTele) "▲▼ canal  ·  ◀▶ enlace  ·  OK información  ·  mantén OK: favorito  ·  ≡ opciones  ·  Atrás: salir"
         else "Desliza ↑↓ canal  ·  ←→ enlace  ·  Toca: información  ·  Mantén pulsado: opciones"
 
     /** Móvil: gestos con el dedo en lugar del mando. */
@@ -844,7 +844,8 @@ class ReproductorActivity : Activity() {
                 // Mantener OK pulsado: opciones (muchos mandos no tienen tecla Menú)
                 if (event.repeatCount == 3) {
                     ultimoOk = 0
-                    opcionesCanal()
+                    // Mantener OK: favorito u opciones (Ajustes); la tecla ≡ abre siempre las opciones
+                    if (ajustes.okLargo == "opciones") opcionesCanal() else alternarFavorito(canales[indice])
                 } else if (event.repeatCount == 0 && esVideo()) {
                     if (player.isPlaying) player.pause() else player.play()
                     mostrarPanel(4000)
