@@ -51,7 +51,13 @@ class MainActivity : ComponentActivity() {
         val conexion = Conexion(ajustes, CopiaLocal(applicationContext))
         setContent { BeagleApp(conexion, ajustes) }
     }
+
+    override fun onResume() { super.onResume(); EnPantalla.activa = true }
+    override fun onPause() { super.onPause(); EnPantalla.activa = false }
 }
+
+/** ¿Está Beagle a la vista (no en el reproductor ni en segundo plano)? Los avisos solo se enseñan si sí. */
+object EnPantalla { @Volatile var activa = false }
 
 private enum class Seccion(val titulo: String) {
     Inicio("Inicio"), Canales("Canales"), Agenda("Agenda"), Videos("Vídeos"), Buscar("Buscar"), Ajustes("Ajustes")
@@ -114,6 +120,25 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
         LaunchedEffect(Unit) { recargar() }
 
         val contextoApp = androidx.compose.ui.platform.LocalContext.current
+        // Avisos de eventos (🔔): 2 minutos antes de empezar sale «Tu aviso», como en HomeTV (solo con la app abierta)
+        LaunchedEffect(servidorVacio) {
+            while (!servidorVacio) {
+                delay(15_000)
+                val cat = catalogo ?: continue
+                if (!EnPantalla.activa || DialogoHost.actual != null) continue
+                val ahora = System.currentTimeMillis()
+                val r = conexion.avisos().firstOrNull { !it.avisado && ahora >= it.inicio - 120_000 && ahora < it.inicio + 3 * 3600_000L } ?: continue
+                try { conexion.avisoMostrado(r.id) } catch (e: Exception) { continue }
+                val ev = cat.eventos.firstOrNull { it.id == r.id }
+                val mios = ev?.let { cat.canalesDe(it) }.orEmpty()
+                val hora = java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES")).format(java.util.Date(r.inicio))
+                val d = DialogoBeagle(contextoApp).setTitle("🔔 Tu aviso")
+                    .setMessage(r.titulo.replace(" - ", " – ") + "\n" + if (ahora >= r.inicio) "Ya ha empezado." else "Empieza a las $hora.")
+                if (mios.isNotEmpty()) d.setPositiveButton("▶ Ver ahora: ${mios[0].titulo}") { _, _ -> abrirReproductor(contextoApp, mios, 0) }
+                d.setNegativeButton("Cerrar", null).show()
+            }
+        }
+
         // Panel del móvil: si estaba encendido, vuelve a encenderse al abrir la app
         LaunchedEffect(Unit) {
             PanelMovil.preparar(contextoApp, conexion, ajustes)

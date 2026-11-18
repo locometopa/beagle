@@ -113,6 +113,12 @@ class Ajustes(private val contexto: Context) {
     }
 
     /** Dónde están `version.txt` y `Beagle.apk` para actualizar (acaba en «/»). */
+    /** De dónde mirar las actualizaciones: primero el servidor de casa (si hay y no se cambió la dirección), luego GitHub. */
+    fun origenesActualizacion(): List<String> = buildList {
+        if (servidor.isNotEmpty() && urlActualizaciones == Actualizador.URL_POR_DEFECTO) add(Servidor.casa(servidor) + "/beagle/")
+        add(urlActualizaciones)
+    }
+
     var urlActualizaciones: String
         get() = sp.getString("urlActualizaciones", Actualizador.URL_POR_DEFECTO) ?: Actualizador.URL_POR_DEFECTO
         set(v) = sp.edit().putString("urlActualizaciones", v).apply()

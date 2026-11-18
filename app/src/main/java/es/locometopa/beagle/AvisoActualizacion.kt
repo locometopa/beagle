@@ -49,15 +49,19 @@ fun AvisoActualizacion(ajustes: Ajustes, repetir: Int = 0, modifier: Modifier = 
     val alcance = rememberCoroutineScope()
     var fase by remember { mutableStateOf<Fase>(Fase.Nada) }
     var ocultado by remember { mutableStateOf<String?>(null) }
+    var origen by remember { mutableStateOf(ajustes.urlActualizaciones) }
 
     // Se mira al abrir, y otra vez cada vez que el panel del servidor pide «Actualizar ya» (sube [repetir])
     LaunchedEffect(repetir) {
         if (repetir > 0) ocultado = null
         // Sin conexión o sin version.txt no se avisa de nada: simplemente no hay actualización que ofrecer
-        val nueva = try {
-            withContext(Dispatchers.IO) { Actualizador.buscar(ajustes.urlActualizaciones, ajustes.version()) }
-        } catch (e: Exception) {
-            null
+        var nueva: VersionNueva? = null
+        for (o in ajustes.origenesActualizacion()) {
+            try {
+                nueva = withContext(Dispatchers.IO) { Actualizador.buscar(o, ajustes.version()) }
+                origen = o
+                break // este origen ha respondido: es el que vale (haya o no versión nueva)
+            } catch (e: Exception) { /* se prueba el siguiente */ }
         }
         if (nueva != null) fase = Fase.Hay(nueva.version)
     }
@@ -67,7 +71,7 @@ fun AvisoActualizacion(ajustes: Ajustes, repetir: Int = 0, modifier: Modifier = 
         alcance.launch {
             fase = try {
                 val apk = withContext(Dispatchers.IO) {
-                    Actualizador.descargar(contexto, ajustes.urlActualizaciones) { p -> fase = Fase.Descargando(version, p) }
+                    Actualizador.descargar(contexto, origen) { p -> fase = Fase.Descargando(version, p) }
                 }
                 when (val r = Actualizador.instalar(contexto, apk)) {
                     null -> Fase.Hay(version)

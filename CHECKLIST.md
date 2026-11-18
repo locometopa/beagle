@@ -103,7 +103,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] Ficha del canal (opciones) y ajuste «OK abre la ficha o reproduce» (0.24.0)
 - [~] Opciones del canal (⋮): favorito, renombrar, categoría, ver enlaces, ocultar (falta juntar o separar) (0.19.2)
 - [~] Favoritos
-- [ ] Qué se emite ahora en el canal (guía, `guia.js`)
+- [~] Qué se emite ahora y luego en el canal (lo da el servidor; sale en la fila) (0.30.0)
 
 ## 8. Buscar
 
@@ -120,7 +120,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 - [~] «Asignar canal» a mano desde el ⋮ del evento (`agendaMapa`) (0.20.0)
 - [~] Filtro «En abierto» (TDT, RTVE Play, autonómicas, YouTube)
 - [~] Eventos en directo y aplazados
-- [ ] Recordatorios / eventos favoritos con aviso (`recordatorios`, `POST /api/recordatorio`)
+- [~] Recordatorios de eventos (🔔 en Agenda, aviso 2 min antes con la app abierta, como HomeTV) (0.30.0)
 - [~] Usar la agenda ya cruzada del servidor (`GET /api/simple`) cuando haya servidor de casa
 
 ## 10. Listas e importar (`importer.js`)
@@ -178,7 +178,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 
 - [~] Mirar si hay versión nueva (`version.txt` en la rama `apk`, o en el servidor de casa)
 - [~] Descargar e instalar la APK desde la app (permiso para instalar apps)
-- [ ] El servidor de casa guarda la APK de Beagle para actualizar dentro de casa (cambio en el repo `hometv`)
+- [~] El servidor de casa guarda la APK de Beagle (/beagle/) y la tele la coge de ahí si puede (0.30.0)
 
 ## 17. Relevo
 

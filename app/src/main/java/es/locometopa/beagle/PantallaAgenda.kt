@@ -58,9 +58,9 @@ fun abrirEvento(contexto: Context, cat: Catalogo, e: Evento) {
 
 /** Un evento: hora (o «EN DIRECTO»), título, competición y cuántos de mis canales lo dan. */
 @Composable
-fun FilaEvento(e: Evento, cat: Catalogo, onClick: () -> Unit) {
+fun FilaEvento(e: Evento, cat: Catalogo, aviso: Boolean = false, onLongClick: (() -> Unit)? = null, onMenu: (() -> Unit)? = null, onClick: () -> Unit) {
     val mios = cat.canalesDe(e)
-    Fila(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    Fila(onClick = onClick, modifier = Modifier.fillMaxWidth(), onLongClick = onLongClick, onMenu = onMenu) {
         Box(Modifier.width(110.dp)) {
             when {
                 e.aplazado -> Text("Aplazado", fontSize = 16.sp, color = Colores.Aviso)
@@ -69,7 +69,7 @@ fun FilaEvento(e: Evento, cat: Catalogo, onClick: () -> Unit) {
             }
         }
         Column(Modifier.weight(1f)) {
-            Text(e.titulo, fontSize = 20.sp, color = Colores.Texto)
+            Text((if (aviso) "🔔 " else "") + e.titulo, fontSize = 20.sp, color = Colores.Texto)
             val sub = listOf(e.deporte, e.competicion).filter { it.isNotEmpty() && it != e.titulo }.joinToString(" · ")
             if (sub.isNotEmpty()) Text(sub, fontSize = 14.sp, color = Colores.Apagado)
         }
@@ -90,6 +90,25 @@ fun PantallaAgenda(datos: Datos, conexion: Conexion) {
     val contexto = LocalContext.current
     val cat = datos.catalogo
     var filtro by remember { mutableStateOf("Todos") }
+    val alcance = androidx.compose.runtime.rememberCoroutineScope()
+    val avisos = remember { androidx.compose.runtime.mutableStateListOf<String>().also { l -> conexion.avisos().forEach { l.add(it.id) } } }
+    fun alternarAviso(e: Evento) {
+        alcance.launch {
+            try {
+                val puesto = conexion.alternarAviso(e)
+                if (puesto) avisos.add(e.id) else avisos.remove(e.id)
+                android.widget.Toast.makeText(contexto, if (puesto) "Te avisaré 2 minutos antes de «${e.titulo}» (con Beagle abierta)" else "Aviso quitado", android.widget.Toast.LENGTH_LONG).show()
+            } catch (x: Exception) { android.widget.Toast.makeText(contexto, x.message ?: "No se ha podido", android.widget.Toast.LENGTH_LONG).show() }
+        }
+    }
+    fun menuEvento(e: Evento) {
+        val textos = ArrayList<String>()
+        val acciones = ArrayList<() -> Unit>()
+        textos.add(if (e.id in avisos) "🔕  Quitar el aviso" else "🔔  Avisarme cuando vaya a empezar")
+        acciones.add { alternarAviso(e) }
+        if (e.canales.isNotEmpty()) { textos.add("✎  Elegir qué canal es el de la agenda…"); acciones.add { asignarCanal(contexto, datos, conexion, e) } }
+        DialogoBeagle(contexto).setTitle(e.titulo).setItems(textos.toTypedArray()) { _, i -> acciones[i]() }.setNegativeButton("Cerrar", null).show()
+    }
     Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Agenda", fontSize = 28.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold)
         if (cat == null) {
@@ -125,8 +144,10 @@ fun PantallaAgenda(datos: Datos, conexion: Conexion) {
         else LazyColumn(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             items(filas, key = { if (it is Evento) "e-${it.id}" else "d-$it" }) { f ->
                 if (f is Evento) Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                    Box(Modifier.weight(1f)) { FilaEvento(f, cat) { abrirEvento(contexto, cat, f) } }
-                    if (f.canales.isNotEmpty()) Fila(onClick = { asignarCanal(contexto, datos, conexion, f) }, modifier = Modifier.padding(start = 8.dp)) { Text("⋮", fontSize = 24.sp, color = Colores.Apagado) }
+                    Box(Modifier.weight(1f)) {
+                        FilaEvento(f, cat, aviso = f.id in avisos, onLongClick = { alternarAviso(f) }, onMenu = { menuEvento(f) }) { abrirEvento(contexto, cat, f) }
+                    }
+                    Fila(onClick = { menuEvento(f) }, modifier = Modifier.padding(start = 8.dp)) { Text("⋮", fontSize = 24.sp, color = Colores.Apagado) }
                 }
                 else Text((f as String).uppercase(), fontSize = 15.sp, color = Colores.Acento, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, modifier = Modifier.padding(top = 12.dp, bottom = 2.dp, start = 6.dp))
             }

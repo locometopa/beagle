@@ -167,6 +167,46 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         if (n == 0) throw java.io.IOException("Este canal no se puede cambiar desde aquí (es un enlace directo)")
     }
 
+    /** Avisos de eventos (`recordatorios` compartido): id, inicio, titulo, avisado. */
+    class Aviso(val id: String, val inicio: Long, val titulo: String, val avisado: Boolean)
+
+    fun avisos(): List<Aviso> {
+        val a = local.leer()?.datos?.optJSONArray("recordatorios") ?: return emptyList()
+        return (0 until a.length()).mapNotNull { i ->
+            val r = a.optJSONObject(i) ?: return@mapNotNull null
+            Aviso(r.optString("id", ""), r.optLong("inicio", 0), r.optString("titulo", ""), r.optBoolean("avisado", false))
+        }.filter { it.id.isNotEmpty() }
+    }
+
+    /** Pone o quita el aviso de un evento. Devuelve true si ha quedado puesto. */
+    suspend fun alternarAviso(e: Evento): Boolean {
+        var poner = false
+        modificarDatos { d ->
+            val a = d.optJSONArray("recordatorios") ?: org.json.JSONArray()
+            val resto = org.json.JSONArray()
+            var estaba = false
+            for (i in 0 until a.length()) { val r = a.optJSONObject(i) ?: continue; if (r.optString("id") == e.id) estaba = true else resto.put(r) }
+            poner = !estaba
+            if (poner) resto.put(org.json.JSONObject().put("id", e.id).put("inicio", e.inicio).put("titulo", e.titulo).put("avisado", false))
+            d.put("recordatorios", resto)
+        }
+        return poner
+    }
+
+    /** Marca un aviso como ya enseñado y quita los que pasaron hace más de tres horas. */
+    suspend fun avisoMostrado(id: String) = modificarDatos { d ->
+        val a = d.optJSONArray("recordatorios") ?: return@modificarDatos
+        val limite = System.currentTimeMillis() - 3 * 3600_000L
+        val nuevo = org.json.JSONArray()
+        for (i in 0 until a.length()) {
+            val r = a.optJSONObject(i) ?: continue
+            if (r.optLong("inicio", 0) < limite) continue
+            if (r.optString("id") == id) r.put("avisado", true)
+            nuevo.put(r)
+        }
+        d.put("recordatorios", nuevo)
+    }
+
     /** ¿Tiene el servidor un vídeo de entrada (`/intro.mp4`)? */
     suspend fun hayIntro(): Boolean = withContext(Dispatchers.IO) {
         val equipo = ajustes.servidor

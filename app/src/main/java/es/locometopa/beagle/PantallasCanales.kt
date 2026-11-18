@@ -201,7 +201,10 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
                 }
                 Text(c.categoria.ifEmpty { "Sin categoría" }, fontSize = 14.sp, color = Colores.Apagado, maxLines = 1)
             }
-            if (c.ahora.isNotEmpty()) Text(c.ahora, fontSize = 14.sp, color = Colores.Apagado, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.width(220.dp).padding(end = 12.dp))
+            if (c.ahora.isNotEmpty()) Column(Modifier.width(220.dp).padding(end = 12.dp)) {
+                Text(c.ahora, fontSize = 14.sp, color = Colores.Texto, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (c.luego.isNotEmpty()) Text("Luego: " + c.luego, fontSize = 12.sp, color = Colores.Apagado, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
             Text(estado, fontSize = 16.sp, color = Color(colorEstado), fontWeight = FontWeight.SemiBold, modifier = Modifier.width(130.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
         }
         Fila(onClick = { opcionesCanal(contexto, lista, c, alFavorito) }) {
