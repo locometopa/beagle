@@ -147,6 +147,13 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
             }
         }
 
+        // Si lo has pedido en Ajustes, al abrir la app se vuelven a bajar las listas con dirección web
+        LaunchedEffect(servidorVacio) {
+            if (!servidorVacio && ajustes.actualizarListas) {
+                try { if (conexion.actualizarListas() > 0) recargar() } catch (e: Exception) { /* sin conexión */ }
+            }
+        }
+
         // Si lo has pedido en Ajustes, al abrir la app el servidor comprueba los canales (sin esperar).
         LaunchedEffect(servidorVacio) {
             if (!servidorVacio && ajustes.comprobarAlAbrir) {

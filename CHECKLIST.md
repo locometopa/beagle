@@ -170,7 +170,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 ## 15. Ajustes
 
 - [ ] Pantalla de ajustes que cambia con OK, sin desplegables ni teclado
-- [ ] Todos los ajustes de `store.js: defaultSettings` (los que no estén ya marcados arriba)
+- [~] Ajustes de `defaultSettings` que tienen sentido en Beagle (actualizar listas al abrir, tele ligera, juntar categorías…) (0.31.0)
 - [~] Limpiar la caché de la app
 - [~] «Empezar de cero» (falta restaurar desde una copia)
 

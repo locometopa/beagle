@@ -167,6 +167,36 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         if (n == 0) throw java.io.IOException("Este canal no se puede cambiar desde aquí (es un enlace directo)")
     }
 
+    /** Junta las categorías que solo se diferencian en mayúsculas o tildes («MOTOR» y «Motor»). Devuelve cuántos canales cambian. */
+    suspend fun unificarCategorias(): Int {
+        var total = 0
+        modificarDatos { d ->
+            total = 0
+            val cs = d.optJSONArray("channels") ?: return@modificarDatos
+            val lista = (0 until cs.length()).mapNotNull { cs.optJSONObject(it) }.filter { it.optString("category", "").isNotEmpty() }
+            for ((_, g) in lista.groupBy { Modelo.sinTildes(it.optString("category")).trim().lowercase() }) {
+                val nombres = g.map { it.optString("category") }
+                if (nombres.distinct().size < 2) continue
+                val buena = nombres.groupingBy { it }.eachCount().maxByOrNull { it.value }!!.key
+                for (c in g) if (c.optString("category") != buena) { c.put("category", buena); total++ }
+            }
+        }
+        return total
+    }
+
+    /** Vuelve a bajar las listas que vienen de una dirección web (las baja el servidor). Devuelve los canales nuevos. */
+    suspend fun actualizarListas(): Int {
+        var nuevos = 0
+        val fs = local.leer()?.datos?.optJSONArray("sources") ?: return 0
+        for (i in 0 until fs.length()) {
+            val f = fs.optJSONObject(i) ?: continue
+            val url = f.optString("url", "")
+            if (url.isEmpty() || f.optBoolean("builtin") || !f.optBoolean("enabled", true)) continue
+            try { nuevos += anadirLista(f.optString("name", "Lista"), url).creados } catch (e: Exception) { /* sigue con las demás */ }
+        }
+        return nuevos
+    }
+
     /** Avisos de eventos (`recordatorios` compartido): id, inicio, titulo, avisado. */
     class Aviso(val id: String, val inicio: Long, val titulo: String, val avisado: Boolean)
 

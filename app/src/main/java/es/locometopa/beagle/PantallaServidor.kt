@@ -184,6 +184,20 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         var alAbrir by remember { mutableStateOf(ajustes.comprobarAlAbrir) }
         FilaAjuste("Comprobar los canales al abrir la app", if (alAbrir) "Sí" else "No", { alAbrir = !alAbrir; ajustes.comprobarAlAbrir = alAbrir })
 
+        var actListas by remember { mutableStateOf(ajustes.actualizarListas) }
+        FilaAjuste("Actualizar las listas con dirección web al abrir la app", if (actListas) "Sí" else "No", { actListas = !actListas; ajustes.actualizarListas = actListas })
+        var ligera by remember { mutableStateOf(ajustes.sincroLigero) }
+        FilaAjuste("Tele ligera: no guardar aquí los canales de listas apagadas", if (ligera) "Sí" else "No", { ligera = !ligera; ajustes.sincroLigero = ligera; mensaje = true to "Se aplica en la próxima sincronización" })
+        FilaAjuste("Juntar categorías repetidas («MOTOR» y «Motor»)", "›", {
+            alcance.launch {
+                try {
+                    val n = conexion.unificarCategorias()
+                    mensaje = true to (if (n > 0) "$n canales juntados en su categoría" else "No había categorías repetidas")
+                    alCambiarServidor()
+                } catch (x: Exception) { mensaje = false to (x.message ?: "No se ha podido") }
+            }
+        })
+
         var intro by remember { mutableStateOf(ajustes.intro) }
         FilaAjuste("Vídeo de entrada al abrir la app (prueba)", if (intro) "Sí" else "No", { intro = !intro; ajustes.intro = intro })
 

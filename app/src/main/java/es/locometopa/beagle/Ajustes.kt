@@ -92,6 +92,11 @@ class Ajustes(private val contexto: Context) {
         get() = if (sp.getString("okLargo", "favorito") == "opciones") "opciones" else "favorito"
         set(v) = sp.edit().putString("okLargo", v).apply()
 
+    /** Al abrir la app, el servidor vuelve a bajar las listas que vienen de una dirección web. */
+    var actualizarListas: Boolean
+        get() = sp.getBoolean("actualizarListas", false)
+        set(v) = sp.edit().putBoolean("actualizarListas", v).apply()
+
     var comprobarAlAbrir: Boolean
         get() = sp.getBoolean("comprobarAlAbrir", false)
         set(v) = sp.edit().putBoolean("comprobarAlAbrir", v).apply()
