@@ -208,6 +208,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
             }
             // El aviso de versión nueva va por encima de todo y coge el foco
             AvisoActualizacion(ajustes, pedirActualizar, Modifier.fillMaxSize())
+            HostDialogos()
             bloqueo?.let { PantallaBloqueada(it.mensaje) }
         }
         }

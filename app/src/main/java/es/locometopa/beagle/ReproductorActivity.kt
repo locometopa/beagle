@@ -1,7 +1,7 @@
 package es.locometopa.beagle
 
 import android.app.Activity
-import android.app.AlertDialog
+
 import android.app.UiModeManager
 import android.content.Context
 import android.content.res.Configuration
@@ -677,12 +677,8 @@ class ReproductorActivity : Activity() {
 
     // ---------------------------------------------------------------- opciones
 
-    private fun dialogo(titulo: String, textos: List<String>, alElegir: (Int) -> Unit): AlertDialog =
-        AlertDialog.Builder(this, android.R.style.Theme_DeviceDefault_Dialog_Alert)
-            .setTitle(titulo)
-            .setItems(textos.toTypedArray()) { _, cual -> alElegir(cual) }
-            .setNegativeButton("Cerrar", null)
-            .create()
+    private fun dialogo(titulo: String, textos: List<String>, alElegir: (Int) -> Unit): DialogoVista =
+        DialogoVista(this, titulo, textos, alElegir)
 
     /** Mantener OK (o Menú): lo que se puede hacer con el canal que se está viendo. */
     private fun opcionesCanal() {
@@ -803,8 +799,8 @@ class ReproductorActivity : Activity() {
     private fun menuCanales() {
         val textos = canales.mapIndexed { i, c -> (if (i == indice) "▶ " else "") + (if (c.favorito) "★ " else "") + c.titulo }
         val d = dialogo("Canales", textos) { if (it != indice) zap(it - indice) }
+        d.seleccionar(indice)
         d.show()
-        try { d.listView.setSelection(indice) } catch (e: Exception) { /* la lista se queda arriba */ }
     }
 
     /** Cambia entre flujo continuo (TS) y troceado (HLS) y lo deja elegido para los demás canales. */

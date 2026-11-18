@@ -89,7 +89,7 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
                         }) { Text("Añadir") }
                         Button(onClick = {
                             val campo = android.widget.EditText(contexto).apply { hint = "Pega aquí la lista (M3U, JSON de AceList o enlaces acestream://)"; minLines = 6; gravity = android.view.Gravity.TOP }
-                            android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                            DialogoBeagle(contexto)
                                 .setTitle("Añadir una lista pegando el texto").setView(campo)
                                 .setPositiveButton("Añadir") { _, _ ->
                                     val texto = campo.text.toString()

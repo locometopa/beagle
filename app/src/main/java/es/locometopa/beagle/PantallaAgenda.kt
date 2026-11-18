@@ -139,12 +139,12 @@ private fun asignarCanal(contexto: Context, datos: Datos, conexion: Conexion, e:
     val cat = datos.catalogo ?: return
     fun buscar(nombre: String) {
         val campo = android.widget.EditText(contexto).apply { hint = "Escribe parte del nombre de tu canal"; setSingleLine() }
-        android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+        DialogoBeagle(contexto)
             .setTitle("¿Qué canal es «$nombre»?").setView(campo)
             .setPositiveButton("Buscar") { _, _ ->
                 val encontrados = Modelo.buscar(cat.canales, campo.text.toString()).take(30)
                 if (encontrados.isEmpty()) { android.widget.Toast.makeText(contexto, "Ninguno se llama así", android.widget.Toast.LENGTH_SHORT).show(); return@setPositiveButton }
-                android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                DialogoBeagle(contexto)
                     .setTitle("Elige el canal para «$nombre»")
                     .setItems(encontrados.map { it.titulo }.toTypedArray()) { _, i ->
                         val ids = encontrados[i].enlaces.map { it.id }.filter { it.isNotEmpty() }
@@ -156,7 +156,7 @@ private fun asignarCanal(contexto: Context, datos: Datos, conexion: Conexion, e:
             }.setNegativeButton("Cancelar", null).show()
     }
     if (e.canales.size == 1) buscar(e.canales[0])
-    else android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+    else DialogoBeagle(contexto)
         .setTitle("Asignar canal: ¿de qué cadena?").setItems(e.canales.toTypedArray()) { _, i -> buscar(e.canales[i]) }
         .setNegativeButton("Cancelar", null).show()
 }

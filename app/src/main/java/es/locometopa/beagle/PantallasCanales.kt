@@ -49,7 +49,7 @@ fun abrirReproductor(contexto: Context, canales: List<Canal>, indice: Int) {
 
 /** Diálogo de una sola elección (categoría, estado, lista…): el mando sube y baja, OK elige. */
 private fun elegirDe(contexto: Context, titulo: String, opciones: List<String>, actual: Int, alElegir: (Int) -> Unit) {
-    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+    DialogoBeagle(contexto)
         .setTitle(titulo)
         .setSingleChoiceItems(opciones.toTypedArray(), actual) { d, i -> alElegir(i); d.dismiss() }
         .setNegativeButton("Cancelar", null)
@@ -130,7 +130,7 @@ object AccionesCanal {
 /** Opciones del canal (el ⋮ de HomeTV): reproducir, favorito y ver sus enlaces. */
 private fun opcionesCanal(contexto: android.content.Context, lista: List<Canal>, c: Canal, alFavorito: (Canal) -> Unit) {
     val textos = arrayOf("▶  Reproducir", if (c.favorito) "☆  Quitar de favoritos" else "★  Añadir a favoritos", "☰  Ver los enlaces (${c.enlaces.size})", "✎  Renombrar…", "▤  Cambiar de categoría…", "✕  Ocultar el canal")
-    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+    DialogoBeagle(contexto)
         .setTitle(c.titulo)
         .setItems(textos) { _, cual ->
             when (cual) {
@@ -138,7 +138,7 @@ private fun opcionesCanal(contexto: android.content.Context, lista: List<Canal>,
                 1 -> alFavorito(c)
                 3 -> {
                     val campo = android.widget.EditText(contexto).apply { setText(c.titulo); setSelectAllOnFocus(true); setSingleLine() }
-                    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    DialogoBeagle(contexto)
                         .setTitle("Nuevo nombre").setView(campo)
                         .setPositiveButton("Guardar") { _, _ ->
                             val nombre = campo.text.toString().trim()
@@ -148,13 +148,13 @@ private fun opcionesCanal(contexto: android.content.Context, lista: List<Canal>,
                 4 -> {
                     val cats = AccionesCanal.categorias
                     val nombres = (listOf("Sin categoría") + cats).toTypedArray()
-                    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    DialogoBeagle(contexto)
                         .setTitle("Categoría de ${c.titulo}")
                         .setItems(nombres) { _, i ->
                             AccionesCanal.cambiar(contexto, c, "Categoría cambiada") { if (i == 0) it.remove("category") else it.put("category", cats[i - 1]) }
                         }.setNegativeButton("Cancelar", null).show()
                 }
-                5 -> android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                5 -> DialogoBeagle(contexto)
                     .setTitle("¿Ocultar ${c.titulo}?").setMessage("Deja de salir en Canales en todas las teles. No se borra de la lista.")
                     .setPositiveButton("Ocultar") { _, _ -> AccionesCanal.cambiar(contexto, c, "Canal oculto") { it.put("oculto", true) } }
                     .setNegativeButton("Cancelar", null).show()
@@ -168,7 +168,7 @@ private fun opcionesCanal(contexto: android.content.Context, lista: List<Canal>,
                         }
                         "Enlace ${i + 1} · $st"
                     }.toTypedArray()
-                    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    DialogoBeagle(contexto)
                         .setTitle("Enlaces de ${c.titulo}").setItems(enl, null).setNegativeButton("Cerrar", null).show()
                 }
             }
@@ -257,6 +257,10 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
     val listasServidor = remember(datos.catalogo, versionListas) { conexion.listas() }
     val alcance = androidx.compose.runtime.rememberCoroutineScope()
     var prog by remember { mutableStateOf<Comprobacion?>(null) }
+    // Al abrir Canales se refresca lo compartido (así el estado de las listas es el del servidor)
+    LaunchedEffect(datos.servidorVacio) {
+        if (!datos.servidorVacio) { conexion.sincronizar(); versionListas++ }
+    }
     // Comprobación de canales del servidor: se mira al abrir (cada 3 s mientras corre) y al acabar se recargan los canales
     LaunchedEffect(datos.servidorVacio) {
         var antes = false
@@ -337,7 +341,7 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
             Text("$apagadas de ${listasServidor.size} listas apagadas: de ellas solo ves los favoritos.", fontSize = 14.sp, color = Colores.Aviso, modifier = Modifier.weight(1f).padding(start = 6.dp))
             Chip("Encender o apagar listas…", false, {
                 val marcadas = BooleanArray(listasServidor.size) { listasServidor[it].encendida }
-                android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                DialogoBeagle(contexto)
                     .setTitle("Listas de canales (marcadas = encendidas)")
                     .setMultiChoiceItems(listasServidor.map { it.nombre + " · ${it.canales}" }.toTypedArray(), marcadas) { _, i, v -> marcadas[i] = v }
                     .setPositiveButton("Guardar") { _, _ ->

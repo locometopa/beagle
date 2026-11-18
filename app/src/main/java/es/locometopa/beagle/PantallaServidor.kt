@@ -131,7 +131,7 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             if (todas.isEmpty()) { mensaje = false to "Aún no hay categorías: espera a que carguen los canales"; return@FilaAjuste }
             val ocultas = conexion.catOcultas()
             val marcadas = BooleanArray(todas.size) { Modelo.sinTildes(todas[it]) in ocultas }
-            android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+            DialogoBeagle(contexto)
                 .setTitle("Marca las categorías que quieres ocultar")
                 .setMultiChoiceItems(todas.toTypedArray(), marcadas) { _, i, v -> marcadas[i] = v }
                 .setPositiveButton("Guardar") { _, _ ->
@@ -249,7 +249,7 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
                 try {
                     val nombres = conexion.copias().take(12)
                     if (nombres.isEmpty()) { mensaje = true to "Aún no hay copias"; return@launch }
-                    android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert)
+                    DialogoBeagle(contexto)
                         .setTitle("Recuperar una copia (sustituye los canales y listas de todas las teles)")
                         .setItems(nombres.toTypedArray()) { _, i ->
                             mensaje = true to "Recuperando…"
@@ -305,11 +305,11 @@ private fun mostrarPanelMovil(contexto: android.content.Context, alCambiar: () -
         caja.addView(android.widget.TextView(contexto).apply { text = url.removePrefix("http://"); textSize = 18f; setTypeface(typeface, android.graphics.Typeface.BOLD) })
         caja.addView(android.widget.TextView(contexto).apply { text = "Desde el móvil puedes importar listas, renombrar y ordenar canales por categoría, borrar, comprobar y mandar un canal a reproducir en la tele. Funciona mientras Beagle esté abierta."; textSize = 13f; setPadding(0, (8 * dp).toInt(), 0, 0) })
     }
-    var d: android.app.AlertDialog? = null
+    var d: DialogoBeagle? = null
     fun botones() {
         d?.dismiss()
         pintar()
-        val b = android.app.AlertDialog.Builder(contexto, android.R.style.Theme_DeviceDefault_Dialog_Alert).setTitle("Controlar desde el móvil").setView(caja)
+        val b = DialogoBeagle(contexto).setTitle("Controlar desde el móvil").setView(caja)
         if (PanelMovil.activo) {
             b.setNeutralButton("Apagar") { _, _ -> PanelMovil.apagar(); alCambiar() }
             b.setNegativeButton("Cambiar la clave") { _, _ -> try { PanelMovil.cambiarClave() } catch (e: Exception) { }; alCambiar(); mostrarPanelMovil(contexto, alCambiar) }
