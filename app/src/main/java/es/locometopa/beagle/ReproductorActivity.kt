@@ -95,6 +95,8 @@ class ReproductorActivity : Activity() {
     private var botonesOpcionales = emptyList<Pair<View, () -> Boolean>>()
     private var filasValores = emptyList<Pair<TextView, () -> String>>()
     private var anchoLateral = 0
+    private var lateralAbierto = false
+    private lateinit var btnAjustes: TextView
     private var controlesVisibles = false
     private var retrasoMs = 0L       // cuánto se ha quedado atrás del directo (pausas y retrocesos)
     private var modoPantalla = 0
@@ -321,6 +323,8 @@ class ReproductorActivity : Activity() {
         fila1.addView(boton("10 s  ▶▶") { saltarEnDirecto(10_000) })
         btnDirecto = boton("●  Directo") { volverAlDirecto() }
         fila1.addView(btnDirecto)
+        btnAjustes = boton("☰  Reproducción  ›") { abrirLateral() }
+        fila1.addView(btnAjustes)
         controles.addView(fila1, LinearLayout.LayoutParams(-2, -2))
         panel.addView(controles)
 
@@ -360,7 +364,7 @@ class ReproductorActivity : Activity() {
         fila("◧", "Formato", { if (formato == "hls") "HLS" else "TS" }, { fuentes.getOrNull(fuente)?.directo == false }) { alternarFormato() }
         fila("⛶", "Pantalla", { listOf("Ajustada", "Ampliada", "Estirada")[modoPantalla] }) { cambiarPantalla() }
         lateral.addView(View(this), LinearLayout.LayoutParams(-1, 0, 1f))
-        lateral.addView(texto(14f, Estilo.APAGADO, false).apply { text = "▲▼ elegir  ·  OK cambiar  ·  ◀ volver a los botones  ·  Atrás cerrar" })
+        lateral.addView(texto(14f, Estilo.APAGADO, false).apply { text = "▲▼ elegir  ·  OK cambiar  ·  ◀ o Atrás: encoger el panel" })
         botonesOpcionales = filas
         filasValores = valores
         anchoLateral = ancho
@@ -392,8 +396,9 @@ class ReproductorActivity : Activity() {
         controlesVisibles = true
         txtAyuda.visibility = View.GONE
         controles.visibility = View.VISIBLE
-        lateral.visibility = View.VISIBLE
-        panel.setPadding(64, 40, anchoLateral + 48, 48)
+        lateral.visibility = View.GONE
+        lateralAbierto = false
+        panel.setPadding(64, 40, 64, 48)
         refrescarFilas()
         mostrarPanel(0)
         actualizarControles()
@@ -407,9 +412,26 @@ class ReproductorActivity : Activity() {
         controlesVisibles = false
         controles.visibility = View.GONE
         lateral.visibility = View.GONE
+        lateralAbierto = false
         panel.setPadding(64, 40, 64, 48)
         txtAyuda.visibility = View.VISIBLE
         mostrarPanel(3000)
+    }
+
+    /** El panel de ajustes sale encogido (solo el botón) y se extiende por el lateral al pulsarlo. */
+    private fun abrirLateral() {
+        refrescarFilas()
+        lateralAbierto = true
+        lateral.visibility = View.VISIBLE
+        panel.setPadding(64, 40, anchoLateral + 48, 48)
+        (1 until lateral.childCount).map { lateral.getChildAt(it) }.firstOrNull { it.isFocusable && it.visibility == View.VISIBLE }?.requestFocus()
+    }
+
+    private fun cerrarLateral() {
+        lateralAbierto = false
+        lateral.visibility = View.GONE
+        panel.setPadding(64, 40, 64, 48)
+        btnAjustes.requestFocus()
     }
 
     private fun programarOcultarControles() {
@@ -1091,11 +1113,13 @@ class ReproductorActivity : Activity() {
         if (controlesVisibles && keyCode in setOf(KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER)) {
             programarOcultarControles()
+            // Con el panel abierto, ◀ lo vuelve a encoger
+            if (lateralAbierto && keyCode == KeyEvent.KEYCODE_DPAD_LEFT) { cerrarLateral(); return true }
             return false
         }
         when (keyCode) {
             KeyEvent.KEYCODE_BACK -> {
-                if (controlesVisibles) ocultarControles() else return super.onKeyDown(keyCode, event)
+                if (lateralAbierto) cerrarLateral() else if (controlesVisibles) ocultarControles() else return super.onKeyDown(keyCode, event)
             }
             KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
                 if (controlesVisibles) { programarOcultarControles(); return true }
