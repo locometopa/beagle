@@ -120,6 +120,14 @@ class ReproductorActivity : Activity() {
     private var avisoVideo = false
     private var ultimoOk = 0L
     private var cargaPendiente: Runnable? = null
+    private val probadoTs = HashSet<String>()        // enlaces en los que HLS no arrancó y se ha probado el TS
+    private var colchonMs = 12_000L
+    private val cortes = ArrayList<Long>()           // momentos de los últimos cortes (para detectar enlaces inestables)
+    private var listoDesde = 0L                      // desde cuándo está en «listo» sin parar
+    private var posVista = -1L
+    private var posDesde = 0L
+    private var sonandoDesde = 0L
+    private var puntoOk = false
 
     private val ocultarPanel = Runnable { panel.animate().alpha(0f).setDuration(300) }
     private val ocultarZap = Runnable { txtZap.visibility = View.GONE }
@@ -176,20 +184,27 @@ class ReproductorActivity : Activity() {
         player.addListener(escucha)
         listo = true
         ui.postDelayed(relojVideo, 1000)
+        ui.postDelayed(guardia, 4000)
         cargar(nuevo = true)
     }
 
     private val escucha = object : Player.Listener {
         override fun onPlaybackStateChanged(estado: Int) {
+            if (estado != Player.STATE_READY) listoDesde = 0L
             if (estado == Player.STATE_BUFFERING) {
                 txtEstado.text = "Cargando…"
-                if (yaSonando) { ui.removeCallbacks(vigilante); ui.postDelayed(vigilante, 25000) }
+                if (yaSonando) {
+                    ui.removeCallbacks(vigilante); ui.postDelayed(vigilante, 12000)
+                    if (player.playWhenReady) registrarCorte()
+                }
             }
             if (estado == Player.STATE_ENDED && esVideo() && indice < canales.size - 1) zap(1)
             if (estado == Player.STATE_READY) {
                 reintentos = 0
                 vueltas = 0
+                if (!yaSonando) { sonandoDesde = System.currentTimeMillis(); puntoOk = false }
                 yaSonando = true
+                if (listoDesde == 0L) listoDesde = System.currentTimeMillis()
                 ui.removeCallbacks(vigilante)
                 mostrarPanel(4000)
             }
@@ -449,7 +464,7 @@ class ReproductorActivity : Activity() {
     /** Cuánto se ha quedado atrás del directo: en HLS lo dice el reproductor; en TS se cuenta lo que ha estado en pausa. */
     private fun retrasoActual(): Long {
         val off = player.currentLiveOffset
-        return if (player.isCurrentMediaItemLive && off != C.TIME_UNSET) (off - 13_000L).coerceAtLeast(0L) else retrasoMs
+        return if (player.isCurrentMediaItemLive && off != C.TIME_UNSET) (off - colchonMs - 1_000L).coerceAtLeast(0L) else retrasoMs
     }
 
     private fun actualizarControles() {
@@ -676,11 +691,72 @@ class ReproductorActivity : Activity() {
         }
     }
 
+    /** Los enlaces que mejor han aguantado se prueban primero (el orden original se respeta en los empates). */
+    private fun ordenados(l: List<Enlace>): List<Enlace> = l.sortedByDescending { ajustes.puntos(it.id) }
+
+    /** Un corte (se queda cargando a mitad). Con tres en un minuto el enlace se da por inestable. */
+    private fun registrarCorte() {
+        val ahora = System.currentTimeMillis()
+        cortes.add(ahora)
+        cortes.removeAll { ahora - it > 60_000 }
+        if (cortes.size < 3) return
+        cortes.clear()
+        val e = fuentes.getOrNull(fuente) ?: return
+        ajustes.puntuar(e.id, -1)
+        if (formato == "hls" && ajustes.colchon(e.id) < 30) {
+            // Más colchón respecto al directo: la imagen va algo más atrasada pero aguanta los parones del P2P
+            ajustes.ponerColchon(e.id, ajustes.colchon(e.id) + 6)
+            txtEstado.text = "Cortes repetidos · más colchón (${ajustes.colchon(e.id)} s)…"
+            mostrarPanel(0)
+            reintentos = 0
+            cargar(nuevo = false)
+        } else if (fuentes.size > 1) {
+            txtEstado.text = "Cortes repetidos · probando otro enlace…"
+            mostrarPanel(0)
+            siguienteFuente("Cortes repetidos")
+        }
+    }
+
+    /** Cada 2 s: imagen negra (hay vídeo pero no sale), imagen parada, y premio al enlace que lleva un minuto estable. */
+    private val guardia = object : Runnable {
+        override fun run() {
+            ui.postDelayed(this, 2000)
+            if (!yaSonando || !player.playWhenReady || controlesVisibles && retrasoMs > 0) return
+            val ahora = System.currentTimeMillis()
+            if (player.playbackState == Player.STATE_READY) {
+                val hayVideo = player.currentTracks.groups.any { it.type == C.TRACK_TYPE_VIDEO }
+                if (hayVideo && player.videoSize.width == 0 && listoDesde != 0L && ahora - listoDesde > 9000) {
+                    listoDesde = 0L
+                    siguienteFuente("Sin imagen")
+                    return
+                }
+                val pos = player.currentPosition
+                if (pos != posVista) { posVista = pos; posDesde = ahora }
+                else if (ahora - posDesde > 7000) { posDesde = ahora; recuperar("Imagen parada"); return }
+                if (!puntoOk && ahora - sonandoDesde > 60_000) {
+                    puntoOk = true
+                    fuentes.getOrNull(fuente)?.let { ajustes.puntuar(it.id, 1) }
+                }
+            } else posDesde = ahora
+        }
+    }
+
     /** El enlace actual no va: el siguiente del mismo canal; al acabarlos, otra vuelta tras una pausa. */
     private fun siguienteFuente(motivo: String) {
         ui.removeCallbacks(vigilante)
         if (probarSinPasarela(motivo)) return
         val g = generacion
+        val actual = fuentes.getOrNull(fuente)
+        // Si HLS no arranca, antes de dar el enlace por malo se prueba en TS
+        if (actual != null && !actual.directo && formato == "hls" && actual.id !in soloHls && actual.id !in probadoTs && formatoElegido == "hls") {
+            probadoTs.add(actual.id)
+            reintentos = 0
+            txtEstado.text = "$motivo · probando en TS…"
+            mostrarPanel(0)
+            cargar(nuevo = false)
+            return
+        }
+        if (actual != null) ajustes.puntuar(actual.id, -1)
         if (fuente + 1 < fuentes.size) {
             fuente++
             reintentos = 0
@@ -716,10 +792,11 @@ class ReproductorActivity : Activity() {
         statUrl = emision.estado
         commandUrl = emision.orden
         val mi = MediaItem.Builder().setUri(Uri.parse(emision.url))
+        colchonMs = (fuentes.getOrNull(fuente)?.let { ajustes.colchon(it.id) } ?: 12) * 1000L
         if (hls) {
             mi.setMimeType(MimeTypes.APPLICATION_M3U8)
             // Unos segundos de colchón respecto al directo: los parones cortos del P2P no llegan a la imagen
-            mi.setLiveConfiguration(MediaItem.LiveConfiguration.Builder().setTargetOffsetMs(12000).build())
+            mi.setLiveConfiguration(MediaItem.LiveConfiguration.Builder().setTargetOffsetMs(colchonMs).build())
         }
         player.setMediaItem(mi.build())
         player.prepare()
@@ -735,12 +812,12 @@ class ReproductorActivity : Activity() {
         if (nuevo) {
             reintentos = 0
             vueltas = 0
-            fuentes = canales[indice].enlaces
+            fuentes = ordenados(canales[indice].enlaces)
             fuente = 0
         }
         val e = fuentes.getOrNull(fuente)
         // Cada enlace en su formato: el elegido en Ajustes, salvo los que ya se sabe que solo van en HLS
-        if (e != null) formato = if (e.id in soloHls) "hls" else formatoElegido
+        if (e != null) formato = if (e.id in soloHls) "hls" else if (e.id in probadoTs) "ts" else formatoElegido
         yaSonando = false
         retrasoMs = 0
         porVpnActual = false
@@ -944,7 +1021,7 @@ class ReproductorActivity : Activity() {
         if (canales.size < 2) return
         indice = ((indice + paso) % canales.size + canales.size) % canales.size
         Sesion.indice = indice
-        fuentes = canales[indice].enlaces
+        fuentes = ordenados(canales[indice].enlaces)
         fuente = 0
         rotular()
         txtZap.text = "${indice + 1}   ${canales[indice].titulo}"

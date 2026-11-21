@@ -16,8 +16,16 @@ class Ajustes(private val contexto: Context) {
 
     /** Cómo se pide el canal al motor: «ts» (continuo) o «hls» (troceado). */
     var formato: String
-        get() = if (sp.getString("formato", "ts") == "hls") "hls" else "ts"
+        get() = if (sp.getString("formato", "hls") == "ts") "ts" else "hls"
         set(v) = sp.edit().putString("formato", v).apply()
+
+    /** Fiabilidad de cada enlace (sube si aguanta, baja si falla): los mejores se prueban primero. */
+    fun puntos(id: String): Int = sp.getInt("p_$id", 0)
+    fun puntuar(id: String, delta: Int) { sp.edit().putInt("p_$id", (puntos(id) + delta).coerceIn(-6, 6)).apply() }
+
+    /** Segundos de colchón respecto al directo en HLS para este enlace (sube solo si corta mucho). */
+    fun colchon(id: String): Int = sp.getInt("c_$id", 12)
+    fun ponerColchon(id: String, seg: Int) { sp.edit().putInt("c_$id", seg.coerceIn(12, 30)).apply() }
 
     /** Última sección abierta: la app vuelve a ella al arrancar. */
     var ultimaSeccion: String
