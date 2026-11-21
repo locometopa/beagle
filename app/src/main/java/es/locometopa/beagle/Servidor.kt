@@ -273,6 +273,17 @@ object Servidor {
         return pedirJson(casa(equipo) + "/api/grabar", 20000, "POST", cuerpo).optString("id", "")
     }
 
+    /** Apunta una incidencia (corte, pantalla negra…) en el servidor para el informe. Sin respuesta si no hay conexión. */
+    fun incidencia(equipo: String, canal: String, enlace: String, formato: String, vpn: Boolean, tipo: String, nota: String) {
+        val o = JSONObject().put("t", System.currentTimeMillis()).put("canal", canal).put("enlace", enlace.take(8)).put("formato", formato)
+            .put("vpn", vpn).put("tipo", tipo).put("nota", nota)
+        pedirJson(casa(equipo) + "/api/incidencias", 8000, "POST", JSONObject().put("lista", org.json.JSONArray().put(o)).toString())
+    }
+
+    fun informeIncidencias(equipo: String, dias: Int = 7): String = pedir(casa(equipo) + "/api/incidencias/informe?dias=$dias", 10000)
+
+    fun borrarIncidencias(equipo: String) { pedirJson(casa(equipo) + "/api/incidencias", 10000, "DELETE", null) }
+
     /** Grabaciones en marcha (o programadas) del servidor: (id, canal). */
     fun grabacionesActivas(equipo: String): List<Pair<String, String>> {
         val a = pedirJson(casa(equipo) + "/api/grabaciones", 10000).optJSONArray("lista") ?: return emptyList()

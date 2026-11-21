@@ -317,6 +317,20 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
                     mensaje = try { val n = conexion.mantenimiento(true); alCambiarServidor(); true to "Hecho: $n canales borrados" } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
                 } }.setNegativeButton("Cancelar", null).show()
         })
+        FilaAjuste("Informe de incidencias (cortes y fallos de canales)", "›", {
+            mensaje = true to "Cargando el informe…"
+            alcance.launch {
+                try {
+                    val texto = conexion.informeIncidencias()
+                    mensaje = true to ""
+                    DialogoBeagle(contexto).setTitle("Incidencias · últimos 7 días")
+                        .setMessage(texto.lines().take(22).joinToString("\n") + "\n\nInforme completo en el PC: http://" + ajustes.servidor + ":8096/api/incidencias/informe")
+                        .setNegativeButton("Cerrar", null)
+                        .setNeutralButton("Borrar el registro") { _, _ -> alcance.launch { mensaje = try { conexion.borrarIncidencias(); true to "Registro borrado" } catch (e: Exception) { false to (e.message ?: "No se ha podido") } } }
+                        .show()
+                } catch (e: Exception) { mensaje = false to (e.message ?: "No se ha podido leer el informe (¿servidor sin actualizar?)") }
+            }
+        })
         FilaAjuste("Limpiar la caché de la app", "›", {
             val n = try { contexto.cacheDir.deleteRecursively() } catch (e: Exception) { false }
             mensaje = true to if (n) "Caché limpia" else "No había nada que limpiar"

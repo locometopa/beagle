@@ -380,6 +380,8 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         ajustes.servidor.ifEmpty { throw java.io.IOException("Falta la dirección del servidor de casa") }
 
     /** ¿El motor está en la propia tele? */
+    suspend fun informeIncidencias(): String = withContext(Dispatchers.IO) { Servidor.informeIncidencias(servidorOError()) }
+    suspend fun borrarIncidencias() = withContext(Dispatchers.IO) { Servidor.borrarIncidencias(servidorOError()) }
     suspend fun grabar(canal: Canal, minutos: Int): String = withContext(Dispatchers.IO) { Servidor.grabar(servidorOError(), canal, minutos) }
     suspend fun buscarApagados(q: String): List<Pair<String, String>> = withContext(Dispatchers.IO) { Servidor.buscarApagados(servidorOError(), q) }
     suspend fun copiaAhora(): String = withContext(Dispatchers.IO) { Servidor.copiaAhora(servidorOError(), ajustes.identidad()) }

@@ -670,6 +670,7 @@ class ReproductorActivity : Activity() {
     }
 
     private fun recuperar(motivo: String) {
+        if (motivo != "Imagen parada") incidencia("recuperar", motivo)
         ui.removeCallbacks(vigilante)
         if ((!yaSonando || reintentos >= 1) && probarSinPasarela(motivo)) return
         val g = generacion
@@ -693,11 +694,21 @@ class ReproductorActivity : Activity() {
         }
     }
 
+    /** Apunta una incidencia en el servidor (informe en Ajustes). Si no hay conexión, se pierde sin más. */
+    private fun incidencia(tipo: String, nota: String = "") {
+        val c = canales.getOrNull(indice) ?: return
+        if (esVideo()) return
+        val e = fuentes.getOrNull(fuente)
+        val datos = arrayOf(c.titulo, e?.id ?: "", formato, if (porVpnActual) "1" else "", tipo, nota)
+        Thread { try { Servidor.incidencia(equipo, datos[0], datos[1], datos[2], datos[3] == "1", datos[4], datos[5]) } catch (x: Exception) { /* sin informe esta vez */ } }.start()
+    }
+
     /** Los enlaces que mejor han aguantado se prueban primero (el orden original se respeta en los empates). */
     private fun ordenados(l: List<Enlace>): List<Enlace> = l.sortedByDescending { ajustes.puntos(it.id) }
 
     /** Un corte (se queda cargando a mitad). Con tres en un minuto el enlace se da por inestable. */
     private fun registrarCorte() {
+        incidencia("corte")
         val ahora = System.currentTimeMillis()
         cortes.add(ahora)
         cortes.removeAll { ahora - it > 60_000 }
@@ -708,6 +719,7 @@ class ReproductorActivity : Activity() {
         if (formato == "hls" && ajustes.colchon(e.id) < 30) {
             // Más colchón respecto al directo: la imagen va algo más atrasada pero aguanta los parones del P2P
             ajustes.ponerColchon(e.id, ajustes.colchon(e.id) + 6)
+            incidencia("más colchón", "${ajustes.colchon(e.id)} s")
             txtEstado.text = "Cortes repetidos · más colchón (${ajustes.colchon(e.id)} s)…"
             mostrarPanel(0)
             reintentos = 0
@@ -729,12 +741,13 @@ class ReproductorActivity : Activity() {
                 val hayVideo = player.currentTracks.groups.any { it.type == C.TRACK_TYPE_VIDEO }
                 if (hayVideo && player.videoSize.width == 0 && listoDesde != 0L && ahora - listoDesde > 9000) {
                     listoDesde = 0L
+                    incidencia("sin imagen")
                     siguienteFuente("Sin imagen")
                     return
                 }
                 val pos = player.currentPosition
                 if (pos != posVista) { posVista = pos; posDesde = ahora }
-                else if (ahora - posDesde > 7000) { posDesde = ahora; recuperar("Imagen parada"); return }
+                else if (ahora - posDesde > 7000) { posDesde = ahora; incidencia("imagen parada"); recuperar("Imagen parada"); return }
                 if (!puntoOk && ahora - sonandoDesde > 60_000) {
                     puntoOk = true
                     fuentes.getOrNull(fuente)?.let { ajustes.puntuar(it.id, 1) }
@@ -752,6 +765,7 @@ class ReproductorActivity : Activity() {
         // Si HLS no arranca, antes de dar el enlace por malo se prueba en TS
         if (actual != null && !actual.directo && formato == "hls" && actual.id !in soloHls && actual.id !in probadoTs && formatoElegido == "hls") {
             probadoTs.add(actual.id)
+            incidencia("HLS no arranca", motivo)
             reintentos = 0
             txtEstado.text = "$motivo · probando en TS…"
             mostrarPanel(0)
@@ -759,6 +773,7 @@ class ReproductorActivity : Activity() {
             return
         }
         if (actual != null) ajustes.puntuar(actual.id, -1)
+        incidencia("enlace malo", motivo)
         if (fuente + 1 < fuentes.size) {
             fuente++
             reintentos = 0
