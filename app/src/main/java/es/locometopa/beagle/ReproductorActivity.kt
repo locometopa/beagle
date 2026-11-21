@@ -91,7 +91,10 @@ class ReproductorActivity : Activity() {
     private lateinit var txtDirecto: TextView
     private lateinit var barraFondo: FrameLayout
     private lateinit var barraRelleno: View
-    private var botonesOpcionales = emptyList<Pair<TextView, () -> Boolean>>()
+    private lateinit var lateral: LinearLayout
+    private var botonesOpcionales = emptyList<Pair<View, () -> Boolean>>()
+    private var filasValores = emptyList<Pair<TextView, () -> String>>()
+    private var anchoLateral = 0
     private var controlesVisibles = false
     private var retrasoMs = 0L       // cuánto se ha quedado atrás del directo (pausas y retrocesos)
     private var modoPantalla = 0
@@ -270,8 +273,8 @@ class ReproductorActivity : Activity() {
         panel.addView(txtTitulo)
         panel.addView(txtEstado)
         panel.addView(txtAyuda)
-        construirControles()
         raiz.addView(panel, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
+        construirControles()
 
         txtZap = texto(26f, Color.WHITE, true)
         txtZap.setPadding(36, 20, 36, 20)
@@ -300,52 +303,98 @@ class ReproductorActivity : Activity() {
     }
 
     private fun construirControles() {
-        controles = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(0, Estilo.dp(this@ReproductorActivity, 12), 0, 0) }
+        val d = Estilo.dp(this, 1)
+        controles = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(0, 12 * d, 0, 0) }
         // Estado respecto al directo y barra
         val fila0 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
         txtDirecto = texto(17f, Estilo.BIEN, true)
-        txtDirecto.minWidth = Estilo.dp(this, 230)
         barraFondo = FrameLayout(this).apply { background = Estilo.redondo(0x44FFFFFF, 99f) }
         barraRelleno = View(this).apply { background = Estilo.redondo(Estilo.ACENTO, 99f) }
         barraFondo.addView(barraRelleno, FrameLayout.LayoutParams(0, -1))
-        fila0.addView(txtDirecto)
-        fila0.addView(barraFondo, LinearLayout.LayoutParams(0, Estilo.dp(this, 6), 1f))
-        controles.addView(fila0, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = Estilo.dp(this@ReproductorActivity, 12) })
+        controles.addView(txtDirecto, LinearLayout.LayoutParams(-2, -2).apply { bottomMargin = 8 * d })
+        controles.addView(barraFondo, LinearLayout.LayoutParams(-1, 6 * d).apply { bottomMargin = 14 * d })
 
         val fila1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        fila1.addView(boton("⏮  Canal") { ocultarControles(); zap(-1) })
-        fila1.addView(boton("⏪  10 s") { saltarEnDirecto(-10_000) })
-        btnPausa = boton("⏸  Pausa") { alternarPausa() }
+        fila1.addView(boton("◀◀  10 s") { saltarEnDirecto(-10_000) })
+        btnPausa = boton("❚❚  Pausa") { alternarPausa() }
         fila1.addView(btnPausa)
-        fila1.addView(boton("10 s  ⏩") { saltarEnDirecto(10_000) })
-        fila1.addView(boton("Canal  ⏭") { ocultarControles(); zap(1) })
-        btnDirecto = boton("●  EN DIRECTO") { volverAlDirecto() }
+        fila1.addView(boton("10 s  ▶▶") { saltarEnDirecto(10_000) })
+        btnDirecto = boton("●  Directo") { volverAlDirecto() }
         fila1.addView(btnDirecto)
-        controles.addView(fila1, LinearLayout.LayoutParams(-2, -2).apply { bottomMargin = Estilo.dp(this@ReproductorActivity, 10) })
-
-        val fila2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        val sonido = boton("♪  Sonido") { ocultarControles(); menuPistas(C.TRACK_TYPE_AUDIO) }
-        val subs = boton("▤  Subtítulos") { ocultarControles(); menuPistas(C.TRACK_TYPE_TEXT) }
-        val calidad = boton("▦  Calidad") { ocultarControles(); menuCalidad() }
-        val enlaces = boton("⇄  Enlaces") { ocultarControles(); menuEnlaces() }
-        val formatoB = boton("◧  Formato") { ocultarControles(); alternarFormato() }
-        val pantalla = boton("⛶  Pantalla") { cambiarPantalla() }
-        for (b in listOf(sonido, subs, calidad, enlaces, formatoB, pantalla)) fila2.addView(b)
-        controles.addView(fila2, LinearLayout.LayoutParams(-2, -2))
-        botonesOpcionales = listOf(
-            calidad to { player.currentTracks.groups.any { it.type == C.TRACK_TYPE_VIDEO && it.length > 1 } },
-            enlaces to { fuentes.size > 1 },
-            formatoB to { fuentes.getOrNull(fuente)?.directo == false },
-        )
+        controles.addView(fila1, LinearLayout.LayoutParams(-2, -2))
         panel.addView(controles)
+
+        // Panel lateral con los ajustes de la emisión: una lista de filas, cada una con su valor actual
+        val ancho = (resources.displayMetrics.widthPixels * 0.34f).toInt()
+        lateral = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL; visibility = View.GONE
+            setPadding(22 * d, 30 * d, 22 * d, 30 * d)
+            setBackgroundColor(0xF20D141E.toInt())
+        }
+        lateral.addView(texto(24f, Estilo.TEXTO, true).apply { text = "Reproducción"; setPadding(0, 0, 0, 12 * d) })
+        val filas = ArrayList<Pair<View, () -> Boolean>>()
+        val valores = ArrayList<Pair<TextView, () -> String>>()
+        fun fila(icono: String, nombre: String, valor: () -> String, visible: () -> Boolean = { true }, accion: () -> Unit) {
+            val v = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
+                setPadding(14 * d, 10 * d, 14 * d, 10 * d)
+                isFocusable = true; isClickable = true
+                val normal = GradientDrawable().apply { setColor(0); cornerRadius = 14f * d; setStroke(2 * d, 0) }
+                val foco = GradientDrawable().apply { setColor(0xFF27313F.toInt()); cornerRadius = 14f * d; setStroke(2 * d, Estilo.ACENTO) }
+                background = android.graphics.drawable.StateListDrawable().apply { addState(intArrayOf(android.R.attr.state_focused), foco); addState(intArrayOf(), normal) }
+                setOnClickListener { ui.removeCallbacks(ocultarControlesR); accion(); ui.postDelayed({ refrescarFilas(); programarOcultarControles() }, 1200) }
+                layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 4 * d }
+            }
+            v.addView(texto(20f, Estilo.APAGADO, true).apply { text = icono; minWidth = 34 * d })
+            v.addView(texto(19f, Estilo.TEXTO, false).apply { text = nombre }, LinearLayout.LayoutParams(0, -2, 1f))
+            val t = texto(17f, Estilo.ACENTO, false).apply { maxLines = 1; ellipsize = android.text.TextUtils.TruncateAt.END; maxWidth = (ancho * 0.45f).toInt() }
+            v.addView(t)
+            lateral.addView(v)
+            filas.add(v to visible)
+            valores.add(t to valor)
+        }
+        fila("♪", "Sonido", { pistaActual(C.TRACK_TYPE_AUDIO) }) { menuPistas(C.TRACK_TYPE_AUDIO) }
+        fila("▤", "Subtítulos", { pistaActual(C.TRACK_TYPE_TEXT) }) { menuPistas(C.TRACK_TYPE_TEXT) }
+        fila("▦", "Calidad", { calidadActual() }, { player.currentTracks.groups.any { it.type == C.TRACK_TYPE_VIDEO && it.length > 1 } }) { menuCalidad() }
+        fila("⇄", "Enlace", { "${fuente + 1} de ${fuentes.size}" }, { fuentes.size > 1 }) { menuEnlaces() }
+        fila("◧", "Formato", { if (formato == "hls") "HLS" else "TS" }, { fuentes.getOrNull(fuente)?.directo == false }) { alternarFormato() }
+        fila("⛶", "Pantalla", { listOf("Ajustada", "Ampliada", "Estirada")[modoPantalla] }) { cambiarPantalla() }
+        lateral.addView(View(this), LinearLayout.LayoutParams(-1, 0, 1f))
+        lateral.addView(texto(14f, Estilo.APAGADO, false).apply { text = "▲▼ elegir  ·  OK cambiar  ·  ◀ volver a los botones  ·  Atrás cerrar" })
+        botonesOpcionales = filas
+        filasValores = valores
+        anchoLateral = ancho
+        (panel.parent as FrameLayout).addView(lateral, FrameLayout.LayoutParams(ancho, -1, Gravity.END))
+    }
+
+    private fun pistaActual(tipo: Int): String {
+        if (tipo == C.TRACK_TYPE_TEXT && player.trackSelectionParameters.disabledTrackTypes.contains(C.TRACK_TYPE_TEXT)) return "Sin"
+        val g = player.currentTracks.groups.firstOrNull { it.type == tipo && it.isSelected } ?: return if (tipo == C.TRACK_TYPE_TEXT) "Sin" else "—"
+        val f = g.getTrackFormat(0)
+        return f.label ?: f.language?.let { Locale(it).getDisplayLanguage(Locale("es", "ES")).replaceFirstChar { c -> c.uppercase() } } ?: "Pista"
+    }
+
+    private fun calidadActual(): String {
+        val g = player.currentTracks.groups.firstOrNull { it.type == C.TRACK_TYPE_VIDEO && it.length > 1 } ?: return "—"
+        val forzada = player.trackSelectionParameters.overrides.keys.any { it == g.mediaTrackGroup }
+        if (!forzada) return "Automática"
+        val i = (0 until g.length).firstOrNull { g.isTrackSelected(it) } ?: return "Automática"
+        return g.getTrackFormat(i).height.takeIf { it > 0 }?.let { "${it}p" } ?: "Fijada"
+    }
+
+    private fun refrescarFilas() {
+        for ((v, visible) in botonesOpcionales) v.visibility = if (visible()) View.VISIBLE else View.GONE
+        for ((t, valor) in filasValores) t.text = valor()
     }
 
     private fun mostrarControles() {
         if (!listo || esVideo()) return
-        for ((b, visible) in botonesOpcionales) b.visibility = if (visible()) View.VISIBLE else View.GONE
         controlesVisibles = true
         txtAyuda.visibility = View.GONE
         controles.visibility = View.VISIBLE
+        lateral.visibility = View.VISIBLE
+        panel.setPadding(64, 40, anchoLateral + 48, 48)
+        refrescarFilas()
         mostrarPanel(0)
         actualizarControles()
         btnPausa.requestFocus()
@@ -357,13 +406,15 @@ class ReproductorActivity : Activity() {
         if (!controlesVisibles) return
         controlesVisibles = false
         controles.visibility = View.GONE
+        lateral.visibility = View.GONE
+        panel.setPadding(64, 40, 64, 48)
         txtAyuda.visibility = View.VISIBLE
         mostrarPanel(3000)
     }
 
     private fun programarOcultarControles() {
         ui.removeCallbacks(ocultarControlesR)
-        if (controlesVisibles) ui.postDelayed(ocultarControlesR, 8000)
+        if (controlesVisibles) ui.postDelayed(ocultarControlesR, 10000)
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
@@ -381,9 +432,9 @@ class ReproductorActivity : Activity() {
         if (!controlesVisibles) return
         val retraso = retrasoActual()
         val pausado = !player.playWhenReady
-        btnPausa.text = if (pausado) "▶  Reanudar" else "⏸  Pausa"
+        btnPausa.text = if (pausado) "▶  Reanudar" else "❚❚  Pausa"
         if (retraso > 4000 || pausado) {
-            txtDirecto.text = (if (pausado) "⏸  EN PAUSA" else "⏪  EN DIFERIDO") + (if (retraso > 1000) "  -" + hms(retraso) else "")
+            txtDirecto.text = (if (pausado) "❚❚  EN PAUSA" else "◀◀  EN DIFERIDO") + (if (retraso > 1000) "  -" + hms(retraso) else "")
             txtDirecto.setTextColor(Estilo.AVISO)
         } else {
             txtDirecto.text = "●  EN DIRECTO"
@@ -435,6 +486,7 @@ class ReproductorActivity : Activity() {
         }
         txtDirecto.text = "⛶  Pantalla: " + listOf("ajustada", "ampliada (recorta los bordes)", "estirada")[modoPantalla]
         txtDirecto.setTextColor(Estilo.TEXTO)
+        refrescarFilas()
     }
 
     /** Calidad de imagen cuando el canal trae varias (HLS adaptativo). */
