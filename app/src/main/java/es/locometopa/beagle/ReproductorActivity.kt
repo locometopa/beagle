@@ -95,6 +95,8 @@ class ReproductorActivity : Activity() {
     @Volatile private var statUrl: String? = null
     @Volatile private var commandUrl: String? = null
     private var reintentos = 0
+    private val sinPasarela = HashSet<String>()      // enlaces directos que fallaron por la VPN del servidor: se prueban sin ella
+    @Volatile private var porVpnActual = false
     private var vueltas = 0          // vueltas completas a todos los enlaces sin conseguir que suene
     private var yaSonando = false
     private var avisoAudio = false
@@ -377,8 +379,21 @@ class ReproductorActivity : Activity() {
      * 2) pedir el canal de nuevo al motor,
      * 3) pasar al siguiente enlace del canal.
      */
+    /** Si el enlace va por la pasarela VPN del servidor y falla, se prueba directo (sin VPN) antes de rendirse. */
+    private fun probarSinPasarela(motivo: String): Boolean {
+        val e = fuentes.getOrNull(fuente) ?: return false
+        if (!porVpnActual || e.id in sinPasarela) return false
+        sinPasarela.add(e.id)
+        reintentos = 0
+        txtEstado.text = "$motivo · probando sin pasar por la VPN…"
+        mostrarPanel(0)
+        cargar(nuevo = false)
+        return true
+    }
+
     private fun recuperar(motivo: String) {
         ui.removeCallbacks(vigilante)
+        if ((!yaSonando || reintentos >= 1) && probarSinPasarela(motivo)) return
         val g = generacion
         mostrarPanel(0)
         if (reintentos == 0 && player.currentMediaItem != null) {
@@ -403,6 +418,7 @@ class ReproductorActivity : Activity() {
     /** El enlace actual no va: el siguiente del mismo canal; al acabarlos, otra vuelta tras una pausa. */
     private fun siguienteFuente(motivo: String) {
         ui.removeCallbacks(vigilante)
+        if (probarSinPasarela(motivo)) return
         val g = generacion
         if (fuente + 1 < fuentes.size) {
             fuente++
@@ -465,6 +481,7 @@ class ReproductorActivity : Activity() {
         // Cada enlace en su formato: el elegido en Ajustes, salvo los que ya se sabe que solo van en HLS
         if (e != null) formato = if (e.id in soloHls) "hls" else formatoElegido
         yaSonando = false
+        porVpnActual = false
         avisoVideo = false
         avisoAudio = false
         ui.removeCallbacks(vigilante)
@@ -489,13 +506,16 @@ class ReproductorActivity : Activity() {
             red.execute {
                 // Si la VPN del servidor tiene pasarela y el ajuste lo permite, la emisión se pide por ella
                 var url = e.url
+                var porVpn = false
                 try {
                     val quiere = CopiaLocal(applicationContext).leer()?.datos?.optJSONObject("ajustes")?.optBoolean("tvPorVpn", true) ?: true
-                    if (quiere && equipo.isNotEmpty() && Regex("(?i)https?://.*").matches(url) && Servidor.salud(equipo, 2500).pasarela) url = Servidor.porPasarela(equipo, url)
+                    if (quiere && equipo.isNotEmpty() && Regex("(?i)https?://.*").matches(url) && e.id !in sinPasarela && Servidor.salud(equipo, 2500).pasarela) { url = Servidor.porPasarela(equipo, url); porVpn = true }
                 } catch (ex: Exception) { /* sin pasarela: directa */ }
                 ui.post {
                     if (isFinishing || isDestroyed || gen != generacion) return@post
-                    reproducir(Emision(url, null, null), hls = false, mensaje = "Emisión en abierto", esperaMs = 30000)
+                    porVpnActual = porVpn
+                    // Por la VPN se espera menos: si no arranca, se prueba directo enseguida
+                    reproducir(Emision(url, null, null), hls = false, mensaje = if (porVpn) "Emisión en abierto (por la VPN)" else "Emisión en abierto", esperaMs = if (porVpn) 15000 else 30000)
                 }
             }
             return
