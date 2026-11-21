@@ -99,6 +99,7 @@ class ReproductorActivity : Activity() {
     private var anchoLateral = 0
     private var lateralAbierto = false
     private lateinit var btnAjustes: TextView
+    private var botonesVideo = emptyList<View>()   // saltos de 1 y 10 minutos: solo en vídeos
     private var controlesVisibles = false
     private var retrasoMs = 0L       // cuánto se ha quedado atrás del directo (pausas y retrocesos)
     private var modoPantalla = 0
@@ -333,12 +334,25 @@ class ReproductorActivity : Activity() {
         barraFondo.addView(barraRelleno, FrameLayout.LayoutParams(0, -1))
         controles.addView(txtDirecto, LinearLayout.LayoutParams(-2, -2).apply { bottomMargin = 8 * d })
         controles.addView(barraFondo, LinearLayout.LayoutParams(-1, 6 * d).apply { bottomMargin = 14 * d })
+        // En vídeos la barra se elige con el mando y ◀▶ recorren el vídeo cada vez más deprisa si se mantiene pulsado
+        barraFondo.isFocusable = true
+        barraFondo.onFocusChangeListener = View.OnFocusChangeListener { v, f ->
+            v.layoutParams = (v.layoutParams as LinearLayout.LayoutParams).apply { height = (if (f && esVideo()) 14 else 6) * d }
+            v.background = Estilo.redondo(if (f && esVideo()) 0x66FFFFFF else 0x44FFFFFF, 99f)
+        }
 
         val fila1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        fila1.addView(boton("◀◀  10 s") { saltarEnDirecto(-10_000) })
+        val menos10 = boton("◀◀  10 min") { saltoControl(-600_000) }
+        val menos1 = boton("◀  1 min") { saltoControl(-60_000) }
+        val mas1 = boton("1 min  ▶") { saltoControl(60_000) }
+        val mas10 = boton("10 min  ▶▶") { saltoControl(600_000) }
+        botonesVideo = listOf(menos10, menos1, mas1, mas10)
+        fila1.addView(menos10); fila1.addView(menos1)
+        fila1.addView(boton("◀  10 s") { saltoControl(-10_000) })
         btnPausa = boton("❚❚  Pausa") { alternarPausa() }
         fila1.addView(btnPausa)
-        fila1.addView(boton("10 s  ▶▶") { saltarEnDirecto(10_000) })
+        fila1.addView(boton("10 s  ▶") { saltoControl(10_000) })
+        fila1.addView(mas1); fila1.addView(mas10)
         btnDirecto = boton("●  Directo") { volverAlDirecto() }
         fila1.addView(btnDirecto)
         btnAjustes = boton("☰  Reproducción  ›") { abrirLateral() }
@@ -380,7 +394,7 @@ class ReproductorActivity : Activity() {
         fila("▤", "Subtítulos", { pistaActual(C.TRACK_TYPE_TEXT) }) { menuPistas(C.TRACK_TYPE_TEXT) }
         fila("▦", "Calidad", { calidadActual() }, { player.currentTracks.groups.any { it.type == C.TRACK_TYPE_VIDEO && it.length > 1 } }) { menuCalidad() }
         fila("⇄", "Enlace", { "${fuente + 1} de ${fuentes.size}" }, { fuentes.size > 1 }) { menuEnlaces() }
-        fila("◧", "Formato", { if (formato == "hls") "HLS" else "TS" }, { fuentes.getOrNull(fuente)?.directo == false }) { alternarFormato() }
+        fila("◧", "Formato", { if (formato == "hls") "HLS" else "TS" }, { fuentes.getOrNull(fuente)?.directo == false && !esVideo() }) { alternarFormato() }
         fila("⛶", "Pantalla", { listOf("Ajustada", "Ampliada", "Estirada")[modoPantalla] }) { cambiarPantalla() }
         lateral.addView(View(this), LinearLayout.LayoutParams(-1, 0, 1f))
         lateral.addView(texto(14f, Estilo.APAGADO, false).apply { text = "▲▼ elegir  ·  OK cambiar  ·  ◀ o Atrás: encoger el panel" })
@@ -411,7 +425,11 @@ class ReproductorActivity : Activity() {
     }
 
     private fun mostrarControles() {
-        if (!listo || esVideo()) return
+        if (!listo) return
+        val video = esVideo()
+        for (b in botonesVideo) b.visibility = if (video) View.VISIBLE else View.GONE
+        btnDirecto.visibility = if (video) View.GONE else View.VISIBLE
+        barraRelleno.background = Estilo.redondo(if (video) Estilo.ACENTO else Estilo.DIRECTO, 99f)
         controlesVisibles = true
         txtAyuda.visibility = View.GONE
         controles.visibility = View.VISIBLE
@@ -421,7 +439,7 @@ class ReproductorActivity : Activity() {
         refrescarFilas()
         mostrarPanel(0)
         actualizarControles()
-        btnPausa.requestFocus()
+        if (video) barraFondo.requestFocus() else btnPausa.requestFocus()
         programarOcultarControles()
     }
 
@@ -471,6 +489,15 @@ class ReproductorActivity : Activity() {
 
     private fun actualizarControles() {
         if (!controlesVisibles) return
+        if (esVideo()) {
+            val dur = player.duration
+            btnPausa.text = if (!player.playWhenReady) "▶  Reanudar" else "❚❚  Pausa"
+            txtDirecto.text = (if (!player.playWhenReady) "❚❚  " else "") + posicionTexto().substringBefore("   ⏸")
+            txtDirecto.setTextColor(Estilo.TEXTO)
+            val f = if (dur > 0 && dur != C.TIME_UNSET) (player.currentPosition.toFloat() / dur).coerceIn(0f, 1f) else 0f
+            barraFondo.post { val lp = barraRelleno.layoutParams; lp.width = (barraFondo.width * f).toInt(); barraRelleno.layoutParams = lp }
+            return
+        }
         val retraso = retrasoActual()
         val pausado = !player.playWhenReady
         btnPausa.text = if (pausado) "▶  Reanudar" else "❚❚  Pausa"
@@ -495,6 +522,15 @@ class ReproductorActivity : Activity() {
     }
 
     /** Atrás o adelante unos segundos: solo si el formato lo permite (HLS); en TS no hay nada detrás que ver. */
+    /** Saltos de los botones: en un vídeo recorren el archivo; en un directo, lo que permita la emisión. */
+    private fun saltoControl(ms: Long) {
+        if (!esVideo()) { saltarEnDirecto(ms); return }
+        val dur = player.duration
+        val nueva = (player.currentPosition + ms).coerceAtLeast(0L)
+        player.seekTo(if (dur != C.TIME_UNSET) nueva.coerceAtMost((dur - 1000).coerceAtLeast(0L)) else nueva)
+        actualizarControles()
+    }
+
     private fun saltarEnDirecto(ms: Long) {
         if (!player.isCurrentMediaItemSeekable) {
             txtDirecto.text = "TS no permite saltar: usa ◧ Formato (HLS)"
@@ -549,7 +585,7 @@ class ReproductorActivity : Activity() {
     }
 
     private fun ayuda(): String =
-        if (esTele && esVideo()) "◀▶ ±10 s  ·  ▲▼ ±1 min  ·  OK pausa  ·  mantén OK: favorito  ·  ≡ opciones  ·  Atrás: salir"
+        if (esTele && esVideo()) "OK: controles y barra  ·  ◀▶ ±10 s  ·  ▲▼ ±1 min  ·  mantén OK: favorito  ·  ≡ opciones  ·  Atrás: salir"
         else if (esTele) "OK: controles (pausa, directo, sonido…)  ·  ≡ opciones del canal  ·  ▲▼ canal  ·  ◀▶ enlace  ·  Atrás: salir"
         else "Toca: controles  ·  Desliza ↑↓ canal  ·  ←→ enlace  ·  Mantén pulsado: opciones del canal"
 
@@ -558,7 +594,7 @@ class ReproductorActivity : Activity() {
         gestos = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean = true
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                if (controlesVisibles) ocultarControles() else if (esVideo()) { if (panel.alpha > 0.5f) ui.post(ocultarPanel) else mostrarPanel(5000) } else mostrarControles()
+                if (controlesVisibles) ocultarControles() else mostrarControles()
                 return true
             }
             override fun onLongPress(e: MotionEvent) = opcionesCanal()
@@ -1238,6 +1274,14 @@ class ReproductorActivity : Activity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (!listo) return super.onKeyDown(keyCode, event)
+        // Barra de un vídeo con el foco: ◀▶ recorren el vídeo, y cuanto más rato se mantiene pulsado, más deprisa
+        if (controlesVisibles && esVideo() && currentFocus === barraFondo && (keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT)) {
+            val n = event.repeatCount
+            val paso = when { n < 4 -> 10_000L; n < 12 -> 30_000L; n < 25 -> 60_000L; else -> 300_000L }
+            saltoControl(if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) -paso else paso)
+            programarOcultarControles()
+            return true
+        }
         // Con los controles a la vista, las flechas y OK son del foco (mover entre botones y pulsar): se dejan pasar
         if (controlesVisibles && keyCode in setOf(KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER)) {
@@ -1273,9 +1317,6 @@ class ReproductorActivity : Activity() {
                     ultimoOk = 0
                     // Mantener OK: favorito u opciones (Ajustes); la tecla ≡ abre siempre las opciones
                     if (ajustes.okLargo == "opciones") opcionesCanal() else alternarFavorito(canales[indice])
-                } else if (event.repeatCount == 0 && esVideo()) {
-                    if (player.isPlaying) player.pause() else player.play()
-                    mostrarPanel(4000)
                 } else if (event.repeatCount == 0) {
                     mostrarControles()
                 }
