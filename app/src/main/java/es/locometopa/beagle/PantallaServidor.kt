@@ -255,6 +255,9 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             TituloAjustes("VPN del servidor")
             FilaAjuste("Estado de la VPN", if (conectado.salud.vpn) "activa" + (conectado.salud.vpnDetalle?.let { " · $it" } ?: "") else "apagada",
                 { comprobar() }, colorValor = if (conectado.salud.vpn) Colores.Bien else Colores.Apagado)
+            if (conectado.salud.vpn) FilaAjuste("Puerto de entrada (más peers, canales más rápidos)",
+                if (conectado.salud.puerto > 0) "abierto · ${conectado.salud.puerto}" else "cerrado · el canal tarda más",
+                { comprobar() }, colorValor = if (conectado.salud.puerto > 0) Colores.Bien else Colores.Aviso)
             var tvVpn by remember { mutableStateOf(conexion.ajusteCompartido("tvPorVpn", true)) }
             FilaAjuste("Canales de TV (IPTV/HLS) por la VPN del servidor", if (tvVpn) "Sí" else "No", {
                 tvVpn = !tvVpn

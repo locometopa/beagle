@@ -27,6 +27,8 @@ class Salud(
     val motor: String?, val vpn: Boolean, val apk: String?, val copias: Int, val ultimaCopia: String?,
     /** Cómo sale el servidor a internet con la VPN (proveedor · ciudad · país · IP), o null si está apagada. */
     val vpnDetalle: String? = null,
+    /** Puerto de entrada que da la VPN al motor (0 = ninguno: llega a menos peers y el canal tarda más). */
+    val puerto: Int = 0,
     /** La VPN del servidor tiene pasarela para canales de TV por internet (IPTV/HLS). */
     val pasarela: Boolean = false,
 )
@@ -128,6 +130,7 @@ object Servidor {
         }
         return Salud(
             vpnDetalle = detalle,
+            puerto = (v as? JSONObject)?.optInt("puerto", 0) ?: 0,
             pasarela = vpnActiva && (v as? JSONObject)?.optBoolean("pasarela", false) == true,
             motor = if (j.isNull("motor")) null else j.optString("motor", "").ifEmpty { null },
             vpn = vpnActiva,
