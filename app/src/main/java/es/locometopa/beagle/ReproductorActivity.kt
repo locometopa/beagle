@@ -1035,6 +1035,12 @@ class ReproductorActivity : Activity() {
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (!listo) return super.onKeyDown(keyCode, event)
+        // Con los controles a la vista, las flechas y OK son del foco (mover entre botones y pulsar): se dejan pasar
+        if (controlesVisibles && keyCode in setOf(KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT,
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER)) {
+            programarOcultarControles()
+            return false
+        }
         when (keyCode) {
             KeyEvent.KEYCODE_BACK -> {
                 if (controlesVisibles) ocultarControles() else return super.onKeyDown(keyCode, event)
