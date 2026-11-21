@@ -112,9 +112,18 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text("Ajustes", fontSize = 28.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold)
-
+        var avanzado by remember { mutableStateOf(false) }
+        BackHandler(enabled = avanzado) { avanzado = false }
+        Text(if (avanzado) "Ajustes avanzados" else "Ajustes", fontSize = 28.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold)
+        if (!avanzado) {
+        TituloAjustes("Canales y móvil")
         FilaAjuste("Listas de canales", "encender, apagar, añadir ›", abrirListas)
+        var movil by remember { mutableStateOf(PanelMovil.activo) }
+        FilaAjuste("Controlar desde el móvil (código QR)", if (movil) "Encendido ›" else "Apagado ›", {
+            PanelMovil.preparar(contexto, conexion, ajustes)
+            mostrarPanelMovil(contexto) { movil = PanelMovil.activo }
+        })
+        TituloAjustes("Reproducción y vista")
         FilaAjuste("Reproductor", reproductor.nombre, {
             val todos = Reproductor.values()
             reproductor = todos[(reproductor.ordinal + 1) % todos.size]
@@ -123,25 +132,44 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         val apps = listOf(Reproductor.Vlc, Reproductor.AcePlayer, Reproductor.AceServe)
             .joinToString(" · ") { it.nombre + if (Externos.instalada(contexto, it) != null) " ✓" else " ✗" }
         Text("Instaladas: $apps", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
-
+        var okFicha by remember { mutableStateOf(ajustes.okFicha) }
+        FilaAjuste("OK sobre un canal", if (okFicha) "Abre su ficha" else "Reproduce", { okFicha = !okFicha; ajustes.okFicha = okFicha })
+        var okLargo by remember { mutableStateOf(ajustes.okLargo) }
+        FilaAjuste("Mantener OK pulsado en un canal", if (okLargo == "opciones") "Abre sus opciones" else "Marca favorito", { okLargo = if (okLargo == "opciones") "favorito" else "opciones"; ajustes.okLargo = okLargo })
+        Text("La tecla ≡ del mando abre siempre las opciones del canal, y OK reproduce.", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+        var cuadricula by remember { mutableStateOf(ajustes.cuadricula) }
+        FilaAjuste("Canales en cuadrícula", if (cuadricula) "Sí" else "No (lista)", { cuadricula = !cuadricula; ajustes.cuadricula = cuadricula; mensaje = true to "Se aplica al volver a Canales" })
+        var logos by remember { mutableStateOf(ajustes.logos) }
+        FilaAjuste("Logos de los canales", if (logos) "Sí" else "No (más ligero)", { logos = !logos; ajustes.logos = logos; mensaje = true to "Se aplica al volver a Canales" })
         FilaAjuste("Ocultar los caídos en «Todos»", if (ocultarCaidos) "Sí" else "No", { ocultarCaidos = !ocultarCaidos; ajustes.ocultarCaidos = ocultarCaidos })
-        var nOcultas by remember { mutableStateOf(conexion.catOcultas().size) }
-        FilaAjuste("Ocultar categorías", if (nOcultas == 0) "Ninguna ›" else "$nOcultas ocultas ›", {
-            val todas = AccionesCanal.categorias
-            if (todas.isEmpty()) { mensaje = false to "Aún no hay categorías: espera a que carguen los canales"; return@FilaAjuste }
-            val ocultas = conexion.catOcultas()
-            val marcadas = BooleanArray(todas.size) { Modelo.sinTildes(todas[it]) in ocultas }
-            DialogoBeagle(contexto)
-                .setTitle("Marca las categorías que quieres ocultar")
-                .setMultiChoiceItems(todas.toTypedArray(), marcadas) { _, i, v -> marcadas[i] = v }
-                .setPositiveButton("Guardar") { _, _ ->
-                    val elegidas = todas.filterIndexed { i, _ -> marcadas[i] }
-                    alcance.launch {
-                        try { conexion.ponerCatOcultas(elegidas); nOcultas = elegidas.size; alCambiarServidor() }
-                        catch (e: Exception) { mensaje = false to (e.message ?: "No se ha podido") }
-                    }
-                }.setNegativeButton("Cancelar", null).show()
+        TituloAjustes("Servidor de casa")
+        FilaAjuste("Estado", tituloEstado, { comprobar() }, colorValor = colorEstado)
+        if (detalleEstado.isNotEmpty()) Text(detalleEstado, fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+        Text("Beagle coge los canales, las listas y los favoritos del servidor de casa de HomeTV (puerto 8096).", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+        if (conexion.servidor().isNotEmpty())
+            Text("Panel de gestión (desde el móvil o el PC, en el mismo wifi): http://${conexion.servidor().substringBefore(':')}:8096", fontSize = 14.sp, color = Colores.Texto, modifier = Modifier.padding(start = 6.dp))
+        CampoTexto(texto, { texto = it }, "Servidor: pulsa OK y escribe la IP (192.168.1.180)", Modifier.fillMaxWidth(),
+            teclado = KeyboardType.Uri, alAceptar = { conectar() })
+        FilaAjuste("Buscar el servidor en la red", "›", {
+            estado = Estado.Buscando
+            alcance.launch {
+                val ip = conexion.buscar()
+                if (ip != null) { texto = ip; alCambiarServidor(); comprobar() }
+                else estado = Estado.NoResponde("No se ha encontrado el servidor en esta red", copia)
+            }
         })
+        TituloAjustes("Copia de seguridad")
+        FilaAjuste("Hacer una copia ahora en el servidor", "›", {
+            mensaje = true to "Guardando la copia en el servidor…"
+            alcance.launch {
+                mensaje = try { true to "Copia guardada: " + conexion.copiaAhora() } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
+            }
+        })
+        TituloAjustes("Más")
+        FilaAjuste("Ajustes avanzados", "comprobación, VPN, motor, copias… ›", { avanzado = true })
+        } else {
+        FilaAjuste("‹ Volver a Ajustes", "", { avanzado = false })
+        TituloAjustes("Comprobación de canales")
         val cp = comprobando
         FilaAjuste(
             if (cp?.activa == true) "Parar la comprobación de canales" else "Comprobar todos los canales (lo hace el servidor)",
@@ -162,32 +190,26 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
                 }
             },
         )
-
-        var movil by remember { mutableStateOf(PanelMovil.activo) }
-        FilaAjuste("Controlar desde el móvil (código QR)", if (movil) "Encendido ›" else "Apagado ›", {
-            PanelMovil.preparar(contexto, conexion, ajustes)
-            mostrarPanelMovil(contexto) { movil = PanelMovil.activo }
-        })
-
-        var logos by remember { mutableStateOf(ajustes.logos) }
-        FilaAjuste("Logos de los canales", if (logos) "Sí" else "No (más ligero)", { logos = !logos; ajustes.logos = logos; mensaje = true to "Se aplica al volver a Canales" })
-
-        var cuadricula by remember { mutableStateOf(ajustes.cuadricula) }
-        FilaAjuste("Canales en cuadrícula", if (cuadricula) "Sí" else "No (lista)", { cuadricula = !cuadricula; ajustes.cuadricula = cuadricula; mensaje = true to "Se aplica al volver a Canales" })
-        var okFicha by remember { mutableStateOf(ajustes.okFicha) }
-        FilaAjuste("OK sobre un canal", if (okFicha) "Abre su ficha" else "Reproduce", { okFicha = !okFicha; ajustes.okFicha = okFicha })
-
-        var okLargo by remember { mutableStateOf(ajustes.okLargo) }
-        FilaAjuste("Mantener OK pulsado en un canal", if (okLargo == "opciones") "Abre sus opciones" else "Marca favorito", { okLargo = if (okLargo == "opciones") "favorito" else "opciones"; ajustes.okLargo = okLargo })
-        Text("La tecla ≡ del mando abre siempre las opciones del canal, y OK reproduce.", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
-
         var alAbrir by remember { mutableStateOf(ajustes.comprobarAlAbrir) }
         FilaAjuste("Comprobar los canales al abrir la app", if (alAbrir) "Sí" else "No", { alAbrir = !alAbrir; ajustes.comprobarAlAbrir = alAbrir })
-
-        var actListas by remember { mutableStateOf(ajustes.actualizarListas) }
-        FilaAjuste("Actualizar las listas con dirección web al abrir la app", if (actListas) "Sí" else "No", { actListas = !actListas; ajustes.actualizarListas = actListas })
-        var ligera by remember { mutableStateOf(ajustes.sincroLigero) }
-        FilaAjuste("Tele ligera: no guardar aquí los canales de listas apagadas", if (ligera) "Sí" else "No", { ligera = !ligera; ajustes.sincroLigero = ligera; mensaje = true to "Se aplica en la próxima sincronización" })
+        TituloAjustes("Listas")
+        var nOcultas by remember { mutableStateOf(conexion.catOcultas().size) }
+        FilaAjuste("Ocultar categorías", if (nOcultas == 0) "Ninguna ›" else "$nOcultas ocultas ›", {
+            val todas = AccionesCanal.categorias
+            if (todas.isEmpty()) { mensaje = false to "Aún no hay categorías: espera a que carguen los canales"; return@FilaAjuste }
+            val ocultas = conexion.catOcultas()
+            val marcadas = BooleanArray(todas.size) { Modelo.sinTildes(todas[it]) in ocultas }
+            DialogoBeagle(contexto)
+                .setTitle("Marca las categorías que quieres ocultar")
+                .setMultiChoiceItems(todas.toTypedArray(), marcadas) { _, i, v -> marcadas[i] = v }
+                .setPositiveButton("Guardar") { _, _ ->
+                    val elegidas = todas.filterIndexed { i, _ -> marcadas[i] }
+                    alcance.launch {
+                        try { conexion.ponerCatOcultas(elegidas); nOcultas = elegidas.size; alCambiarServidor() }
+                        catch (e: Exception) { mensaje = false to (e.message ?: "No se ha podido") }
+                    }
+                }.setNegativeButton("Cancelar", null).show()
+        })
         FilaAjuste("Juntar categorías repetidas («MOTOR» y «Motor»)", "›", {
             alcance.launch {
                 try {
@@ -197,26 +219,10 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
                 } catch (x: Exception) { mensaje = false to (x.message ?: "No se ha podido") }
             }
         })
-
-        var intro by remember { mutableStateOf(ajustes.intro) }
-        FilaAjuste("Vídeo de entrada al abrir la app (prueba)", if (intro) "Sí" else "No", { intro = !intro; ajustes.intro = intro })
-
-        TituloAjustes("Servidor de casa")
-        FilaAjuste("Estado", tituloEstado, { comprobar() }, colorValor = colorEstado)
-        if (detalleEstado.isNotEmpty()) Text(detalleEstado, fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
-        Text("Beagle coge los canales, las listas y los favoritos del servidor de casa de HomeTV (puerto 8096).", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
-        if (conexion.servidor().isNotEmpty())
-            Text("Panel de gestión (desde el móvil o el PC, en el mismo wifi): http://${conexion.servidor().substringBefore(':')}:8096", fontSize = 14.sp, color = Colores.Texto, modifier = Modifier.padding(start = 6.dp))
-        CampoTexto(texto, { texto = it }, "Servidor: pulsa OK y escribe la IP (192.168.1.180)", Modifier.fillMaxWidth(),
-            teclado = KeyboardType.Uri, alAceptar = { conectar() })
-        FilaAjuste("Buscar el servidor en la red", "›", {
-            estado = Estado.Buscando
-            alcance.launch {
-                val ip = conexion.buscar()
-                if (ip != null) { texto = ip; alCambiarServidor(); comprobar() }
-                else estado = Estado.NoResponde("No se ha encontrado el servidor en esta red", copia)
-            }
-        })
+        var actListas by remember { mutableStateOf(ajustes.actualizarListas) }
+        FilaAjuste("Actualizar las listas con dirección web al abrir la app", if (actListas) "Sí" else "No", { actListas = !actListas; ajustes.actualizarListas = actListas })
+        var ligera by remember { mutableStateOf(ajustes.sincroLigero) }
+        FilaAjuste("Tele ligera: no guardar aquí los canales de listas apagadas", if (ligera) "Sí" else "No", { ligera = !ligera; ajustes.sincroLigero = ligera; mensaje = true to "Se aplica en la próxima sincronización" })
         val conectado = estado as? Estado.Conectado
         if (conectado != null) {
             TituloAjustes("VPN del servidor")
@@ -231,7 +237,6 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             FilaAjuste("Proton VPN", "usar ›", { cambiarVpn("proton") })
             FilaAjuste("Sin VPN", "›", { cambiarVpn("ninguna") })
         }
-
         TituloAjustes("Motor de Ace Stream")
         FilaAjuste("Dónde está el motor", if (enTele) "En esta tele" else "En el servidor de casa", {
             enTele = !enTele; conexion.ponerMotorEnTele(enTele); motor = null
@@ -242,14 +247,7 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
                 motor = try { true to conexion.comprobarMotor() } catch (e: Exception) { false to (e.message ?: "No responde") }
             }
         }, colorValor = if (motor?.first == false) Colores.Mal else Colores.Acento)
-
-        TituloAjustes("Copia de seguridad y mantenimiento")
-        FilaAjuste("Hacer una copia ahora en el servidor", "›", {
-            mensaje = true to "Guardando la copia en el servidor…"
-            alcance.launch {
-                mensaje = try { true to "Copia guardada: " + conexion.copiaAhora() } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
-            }
-        })
+        TituloAjustes("Recuperar copias")
         FilaAjuste("Ver las copias del servidor", "›", {
             alcance.launch {
                 mensaje = try {
@@ -276,6 +274,7 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
                 } catch (e: Exception) { mensaje = false to (e.message ?: "No se ha podido") }
             }
         })
+        TituloAjustes("Mantenimiento")
         FilaAjuste("Limpiar la caché de la app", "›", {
             val n = try { contexto.cacheDir.deleteRecursively() } catch (e: Exception) { false }
             mensaje = true to if (n) "Caché limpia" else "No había nada que limpiar"
@@ -284,12 +283,17 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             if (!seguro) { seguro = true; mensaje = false to "Pulsa otra vez «Empezar de cero» para borrar lo guardado en esta tele (el servidor no se toca)" }
             else { seguro = false; conexion.empezarDeCero(); mensaje = true to "Hecho: cierra y abre la app para volver a cargarlo todo del servidor" }
         }, peligro = true)
+        TituloAjustes("Pantalla")
+        var intro by remember { mutableStateOf(ajustes.intro) }
+        FilaAjuste("Vídeo de entrada al abrir la app (prueba)", if (intro) "Sí" else "No", { intro = !intro; ajustes.intro = intro })
+        }
         mensaje?.let { (bien, t) -> Text(t, fontSize = 15.sp, color = if (bien) Colores.Bien else Colores.Aviso, modifier = Modifier.padding(start = 6.dp, top = 4.dp)) }
-
+        if (avanzado) {
         copia?.let { c ->
             TituloAjustes("Lo que hay en la tele")
             val r = c.resumen
             Text("${r.canales} canales" + (if (r.ligero) " (sin los de listas apagadas)" else "") + " · ${r.listas} listas, ${r.listasEncendidas} encendidas · ${r.favoritos} favoritos", fontSize = 15.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+        }
         }
         Text("Beagle ${ajustes.version()}", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp, top = 12.dp, bottom = 24.dp))
     }
