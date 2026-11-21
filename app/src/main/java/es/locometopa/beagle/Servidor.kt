@@ -31,6 +31,10 @@ class Salud(
     val puerto: Int = 0,
     /** La VPN del servidor tiene pasarela para canales de TV por internet (IPTV/HLS). */
     val pasarela: Boolean = false,
+    /** Países de salida que ofrece Proton: (id para el servidor, nombre en castellano, recomendado). */
+    val paisesVpn: List<Triple<String, String, Boolean>> = emptyList(),
+    /** Proton está en uso con su clave guardada (si no, no se puede elegir país). */
+    val protonListo: Boolean = false,
 )
 
 /** Una carpeta de vídeos del servidor (o de su NAS). La de grabaciones sale también aquí, con id «grabaciones». */
@@ -132,6 +136,10 @@ object Servidor {
             vpnDetalle = detalle,
             puerto = (v as? JSONObject)?.optInt("puerto", 0) ?: 0,
             pasarela = vpnActiva && (v as? JSONObject)?.optBoolean("pasarela", false) == true,
+            paisesVpn = j.optJSONObject("vpnCambio")?.optJSONArray("disponibles")?.let { a ->
+                (0 until a.length()).mapNotNull { i -> a.optJSONObject(i)?.let { Triple(it.optString("id"), it.optString("es", it.optString("id")), it.optBoolean("rec", false)) } }
+            } ?: emptyList(),
+            protonListo = j.optJSONObject("vpnCambio")?.optBoolean("protonListo", false) == true,
             motor = if (j.isNull("motor")) null else j.optString("motor", "").ifEmpty { null },
             vpn = vpnActiva,
             apk = if (j.isNull("apk")) null else j.optString("apk", "").ifEmpty { null },
@@ -358,6 +366,11 @@ object Servidor {
     // --- VPN del servidor ---
 
     /** Pide al servidor cambiar su VPN: «warp», «proton» o «ninguna». Tarda unos segundos en aplicarse. */
+    /** Cambia el país de salida de Proton (se reconecta en unos segundos). */
+    fun cambiarPaisVpn(equipo: String, pais: String) {
+        pedirJson(casa(equipo) + "/api/vpn", 15000, "POST", JSONObject().put("pais", pais).toString())
+    }
+
     fun cambiarVpn(equipo: String, usar: String) {
         pedirJson(casa(equipo) + "/api/vpn", 15000, "POST", JSONObject().put("usar", usar).toString())
     }

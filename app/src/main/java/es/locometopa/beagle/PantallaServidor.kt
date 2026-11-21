@@ -89,6 +89,20 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         }
     }
 
+    fun cambiarPais(id: String, nombre: String) {
+        mensaje = true to "Cambiando la salida de la VPN a $nombre… tarda unos segundos"
+        alcance.launch {
+            try {
+                conexion.cambiarPaisVpn(id)
+                kotlinx.coroutines.delay(15000)
+                comprobar()
+                mensaje = null
+            } catch (x: Exception) {
+                mensaje = false to (x.message ?: "No se ha podido cambiar el país")
+            }
+        }
+    }
+
     // Al abrir se pregunta al servidor (la copia local ya está a la vista)
     LaunchedEffect(Unit) { if (conexion.servidor().isNotEmpty()) comprobar() }
 
@@ -262,6 +276,13 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             FilaAjuste("Canales de TV (IPTV/HLS) por la VPN del servidor", if (tvVpn) "Sí" else "No", {
                 tvVpn = !tvVpn
                 alcance.launch { try { conexion.ponerAjusteCompartido("tvPorVpn", tvVpn) } catch (e: Exception) { tvVpn = !tvVpn; mensaje = false to (e.message ?: "No se ha podido") } }
+            })
+            if (conectado.salud.paisesVpn.isNotEmpty()) FilaAjuste("País de salida de la VPN (Proton)",
+                conectado.salud.vpnDetalle?.split(" · ")?.getOrNull(2) ?: "elegir ›", {
+                val p = conectado.salud.paisesVpn
+                DialogoBeagle(contexto).setTitle("País de salida de la VPN")
+                    .setItems(p.map { (if (it.third) "★  " else "    ") + it.second }.toTypedArray()) { _, i -> cambiarPais(p[i].first, p[i].second) }
+                    .setNegativeButton("Cancelar", null).show()
             })
             FilaAjuste("Cloudflare WARP", "usar ›", { cambiarVpn("warp") })
             FilaAjuste("Proton VPN", "usar ›", { cambiarVpn("proton") })

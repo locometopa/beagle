@@ -371,6 +371,7 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
 
     suspend fun carpetas(): List<Carpeta> = withContext(Dispatchers.IO) { Servidor.carpetas(servidorOError()) }
     suspend fun listarCarpeta(id: String, sub: String): Listado = withContext(Dispatchers.IO) { Servidor.listarCarpeta(servidorOError(), id, sub) }
+    suspend fun cambiarPaisVpn(pais: String) = withContext(Dispatchers.IO) { Servidor.cambiarPaisVpn(servidorOError(), pais) }
     suspend fun cambiarVpn(usar: String) = withContext(Dispatchers.IO) { Servidor.cambiarVpn(servidorOError(), usar) }
 
     /** Lo que dice el panel de esta tele: si está bloqueada (mensaje a pantalla completa) o si pide actualizar. Lanza si el servidor no responde. */
