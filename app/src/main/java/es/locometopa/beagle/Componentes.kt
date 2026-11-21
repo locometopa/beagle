@@ -57,17 +57,18 @@ val Outfit = FontFamily(
 
 // Azul noche con dorado, los colores del logo
 object Colores {
-    val Fondo = Color(0xFF0D141E)
-    val Panel = Color(0xFF19212D)
-    val PanelFoco = Color(0xFF27313F)
-    val Lateral = Color(0xFF070E19)
-    val Linea = Color(0xFF3A4454)
-    val Texto = Color(0xFFF4F4F4)
-    val Apagado = Color(0xFFA3AAB5)
-    val Acento = Color(0xFFE2AE49)
-    val Bien = Color(0xFF7FE0A8)
-    val Aviso = Color(0xFFF0C64A)
-    val Mal = Color(0xFFFF6B6E)
+    val Fondo = Color(0xFF080E12)
+    val Panel = Color(0xFF0F1B22)
+    val PanelFoco = Color(0xFF173039)
+    val Lateral = Color(0xFF050A0D)
+    val Linea = Color(0xFF21363F)
+    val Texto = Color(0xFFFFFFFF)
+    val Apagado = Color(0xFF8FA5B0)
+    val Acento = Color(0xFFFFE600)
+    val Bien = Color(0xFF2EDB8A)
+    val Aviso = Color(0xFFFFB020)
+    val Directo = Color(0xFFFF0046)
+    val Mal = Color(0xFFFF3B63)
 }
 
 /** Una fila como `.row-btn` de HomeTV: fondo gris, y con el foco borde verde y fondo algo más claro. Sin sombras: así va fluido. */

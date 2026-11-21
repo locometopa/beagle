@@ -112,11 +112,11 @@ fun AvisoActualizacion(ajustes: Ajustes, repetir: Int = 0, modifier: Modifier = 
     // Ventana centrada sobre un fondo oscuro, como un diálogo
     Box(modifier.background(Color(0xB3000000)), contentAlignment = Alignment.Center) {
         Column(
-            Modifier.width(640.dp).background(Color(0xFF19212D), RoundedCornerShape(16.dp)).padding(32.dp),
+            Modifier.width(640.dp).background(Color(0xFF0F1B22), RoundedCornerShape(16.dp)).padding(32.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Text("Hay una versión nueva de Beagle", fontSize = 26.sp, color = MaterialTheme.colorScheme.onBackground)
-            Text(texto, fontSize = 18.sp, color = Color(0xFFA3AAB5))
+            Text(texto, fontSize = 18.sp, color = Color(0xFF8FA5B0))
             if (f !is Fase.Descargando) {
                 Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Button(onClick = { actualizar(version) }, modifier = Modifier.focusRequester(pedirFoco)) { Text("Actualizar ahora") }

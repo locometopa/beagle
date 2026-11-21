@@ -80,6 +80,8 @@ class ReproductorActivity : Activity() {
     private lateinit var txtNumero: TextView
     /** Canales que se están grabando en el servidor desde aquí: clave → hasta cuándo (ms). */
     private val grabando = HashMap<String, Long>()
+    /** Id de la grabación en curso de cada canal (para poder pararla desde aquí). */
+    private val grabandoId = HashMap<String, String>()
     private lateinit var txtTitulo: TextView
     private lateinit var txtEstado: TextView
     private lateinit var txtAyuda: TextView
@@ -284,8 +286,8 @@ class ReproductorActivity : Activity() {
         panel.background = GradientDrawable(GradientDrawable.Orientation.BOTTOM_TOP, intArrayOf(0xE6000000.toInt(), 0x00000000))
         txtNumero = texto(16f, Estilo.ACENTO, true)
         txtTitulo = texto(30f, Color.WHITE, true)
-        txtEstado = texto(18f, 0xFFC9D1DB.toInt(), false)
-        txtAyuda = texto(14f, 0xFF8E9AAB.toInt(), false)
+        txtEstado = texto(18f, 0xFFD5E0E6.toInt(), false)
+        txtAyuda = texto(14f, 0xFF8FA5B0.toInt(), false)
         panel.addView(txtNumero)
         panel.addView(txtTitulo)
         panel.addView(txtEstado)
@@ -311,7 +313,7 @@ class ReproductorActivity : Activity() {
         text = txt; textSize = 17f; setTextColor(Estilo.TEXTO); gravity = Gravity.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD
         setPadding(Estilo.dp(context, 18), Estilo.dp(context, 10), Estilo.dp(context, 18), Estilo.dp(context, 10))
         isFocusable = true; isClickable = true
-        val normal = GradientDrawable().apply { setColor(0xCC19212D.toInt()); cornerRadius = 999f; setStroke(Estilo.dp(context, 2), Estilo.LINEA) }
+        val normal = GradientDrawable().apply { setColor(0xCC0F1B22.toInt()); cornerRadius = 999f; setStroke(Estilo.dp(context, 2), Estilo.LINEA) }
         val foco = GradientDrawable().apply { setColor(Estilo.ACENTO); cornerRadius = 999f; setStroke(Estilo.dp(context, 2), Estilo.ACENTO) }
         background = android.graphics.drawable.StateListDrawable().apply { addState(intArrayOf(android.R.attr.state_focused), foco); addState(intArrayOf(), normal) }
         onFocusChangeListener = View.OnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Estilo.FONDO else Estilo.TEXTO) }
@@ -325,9 +327,9 @@ class ReproductorActivity : Activity() {
         controles = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(0, 12 * d, 0, 0) }
         // Estado respecto al directo y barra
         val fila0 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        txtDirecto = texto(17f, Estilo.BIEN, true)
+        txtDirecto = texto(17f, Estilo.DIRECTO, true)
         barraFondo = FrameLayout(this).apply { background = Estilo.redondo(0x44FFFFFF, 99f) }
-        barraRelleno = View(this).apply { background = Estilo.redondo(Estilo.ACENTO, 99f) }
+        barraRelleno = View(this).apply { background = Estilo.redondo(Estilo.DIRECTO, 99f) }
         barraFondo.addView(barraRelleno, FrameLayout.LayoutParams(0, -1))
         controles.addView(txtDirecto, LinearLayout.LayoutParams(-2, -2).apply { bottomMargin = 8 * d })
         controles.addView(barraFondo, LinearLayout.LayoutParams(-1, 6 * d).apply { bottomMargin = 14 * d })
@@ -350,7 +352,7 @@ class ReproductorActivity : Activity() {
         lateral = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; visibility = View.GONE
             setPadding(22 * d, 30 * d, 22 * d, 30 * d)
-            setBackgroundColor(0xF20D141E.toInt())
+            setBackgroundColor(0xF2080E12.toInt())
         }
         lateral.addView(texto(24f, Estilo.TEXTO, true).apply { text = "Reproducción"; setPadding(0, 0, 0, 12 * d) })
         val filas = ArrayList<Pair<View, () -> Boolean>>()
@@ -361,7 +363,7 @@ class ReproductorActivity : Activity() {
                 setPadding(14 * d, 10 * d, 14 * d, 10 * d)
                 isFocusable = true; isClickable = true
                 val normal = GradientDrawable().apply { setColor(0); cornerRadius = 14f * d; setStroke(2 * d, 0) }
-                val foco = GradientDrawable().apply { setColor(0xFF27313F.toInt()); cornerRadius = 14f * d; setStroke(2 * d, Estilo.ACENTO) }
+                val foco = GradientDrawable().apply { setColor(0xFF173039.toInt()); cornerRadius = 14f * d; setStroke(2 * d, Estilo.ACENTO) }
                 background = android.graphics.drawable.StateListDrawable().apply { addState(intArrayOf(android.R.attr.state_focused), foco); addState(intArrayOf(), normal) }
                 setOnClickListener { ui.removeCallbacks(ocultarControlesR); accion(); ui.postDelayed({ refrescarFilas(); programarOcultarControles() }, 1200) }
                 layoutParams = LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = 4 * d }
@@ -477,7 +479,7 @@ class ReproductorActivity : Activity() {
             txtDirecto.setTextColor(Estilo.AVISO)
         } else {
             txtDirecto.text = "●  EN DIRECTO"
-            txtDirecto.setTextColor(Estilo.BIEN)
+            txtDirecto.setTextColor(Estilo.DIRECTO)
         }
         val fraccion = 1f - (retraso.coerceAtMost(60_000L) / 60_000f)
         barraFondo.post {
@@ -621,7 +623,7 @@ class ReproductorActivity : Activity() {
         if (fuentes.size > 1) partes.add("Enlace ${fuente + 1} de ${fuentes.size}")
         if (formato == "hls") partes.add("HLS")
         if (canales[indice].favorito) partes.add("★")
-        if ((grabando[canales[indice].clave] ?: 0L) > System.currentTimeMillis()) partes.add("⏺ REC")
+        if (grabandoId.containsKey(canales[indice].clave)) partes.add("◉ REC")
         txtNumero.text = partes.joinToString("   ·   ")
         txtTitulo.text = canales[indice].titulo
     }
@@ -814,6 +816,7 @@ class ReproductorActivity : Activity() {
             vueltas = 0
             fuentes = ordenados(canales[indice].enlaces)
             fuente = 0
+            if (!esVideo()) comprobarGrabacion(canales[indice])
         }
         val e = fuentes.getOrNull(fuente)
         // Cada enlace en su formato: el elegido en Ajustes, salvo los que ya se sabe que solo van en HLS
@@ -1050,8 +1053,13 @@ class ReproductorActivity : Activity() {
         val acciones = ArrayList<() -> Unit>()
         textos.add(if (canal.favorito) "☆  Quitar de favoritos" else "★  Añadir a favoritos")
         acciones.add { alternarFavorito(canal) }
-        textos.add("⏺  Grabar este canal en el servidor…")
-        acciones.add { menuGrabar(canal) }
+        if (grabandoId.containsKey(canal.clave)) {
+            textos.add("⏹  Parar la grabación de este canal")
+            acciones.add { pararGrabacion(canal) }
+        } else {
+            textos.add("◉  Grabar este canal en el servidor…")
+            acciones.add { menuGrabar(canal) }
+        }
         if (canales.size > 1) {
             textos.add("☰  Ir a otro canal de la lista…")
             acciones.add { menuCanales() }
@@ -1111,20 +1119,47 @@ class ReproductorActivity : Activity() {
         dialogo(if (tipo == C.TRACK_TYPE_TEXT) "Subtítulos" else "Pista de audio", textos) { acciones[it]() }.show()
     }
 
+    /** Sin límite = 24 h como tope de seguridad: se para a mano desde las opciones del canal. */
     private fun menuGrabar(canal: Canal) {
-        val minutos = listOf(30, 60, 90, 120, 180)
-        dialogo("Grabar ${canal.titulo}", minutos.map { "$it minutos" }) { i ->
+        val minutos = listOf(30, 60, 90, 120, 180, 1440)
+        val textos = minutos.map { if (it == 1440) "Sin límite (hasta que la pares tú)" else "$it minutos" }
+        dialogo("Grabar ${canal.titulo}", textos) { i ->
             Thread {
                 var error = ""
-                try { Servidor.grabar(equipo, canal, minutos[i]) } catch (e: Exception) { error = e.message ?: "sin conexión con el servidor" }
+                var id = ""
+                try { id = Servidor.grabar(equipo, canal, minutos[i]) } catch (e: Exception) { error = e.message ?: "sin conexión con el servidor" }
                 ui.post {
                     if (isFinishing || isDestroyed) return@post
-                    if (error.isEmpty()) { grabando[canal.clave] = System.currentTimeMillis() + minutos[i] * 60_000L; rotular() }
-                    txtEstado.text = if (error.isEmpty()) "⏺ Grabando ${minutos[i]} min en el servidor (míralo en Vídeos › Grabaciones)" else "No se ha podido grabar: $error"
+                    if (error.isEmpty()) { grabandoId[canal.clave] = id; rotular() }
+                    txtEstado.text = if (error.isEmpty()) "◉ Grabando " + (if (minutos[i] == 1440) "sin límite" else "${minutos[i]} min") +
+                        " en el servidor (para pararla: ≡ › Parar la grabación)" else "No se ha podido grabar: $error"
                     mostrarPanel(5000)
                 }
             }.start()
         }.show()
+    }
+
+    private fun pararGrabacion(canal: Canal) {
+        val id = grabandoId[canal.clave] ?: return
+        Thread {
+            var error = ""
+            try { Servidor.pararGrabacion(equipo, id) } catch (e: Exception) { error = e.message ?: "sin conexión con el servidor" }
+            ui.post {
+                if (isFinishing || isDestroyed) return@post
+                if (error.isEmpty()) { grabandoId.remove(canal.clave); rotular() }
+                txtEstado.text = if (error.isEmpty()) "⏹ Grabación parada y guardada (Vídeos › Grabaciones)" else "No se ha podido parar: $error"
+                mostrarPanel(5000)
+            }
+        }.start()
+    }
+
+    /** Al abrir un canal se mira si el servidor ya lo está grabando (por si se empezó antes o desde otro sitio). */
+    private fun comprobarGrabacion(canal: Canal) {
+        Thread {
+            val activas = try { Servidor.grabacionesActivas(equipo) } catch (e: Exception) { return@Thread }
+            val id = activas.firstOrNull { it.second == canal.titulo }?.first
+            ui.post { if (id != null) grabandoId[canal.clave] = id else grabandoId.remove(canal.clave); if (!isFinishing && canales.getOrNull(indice)?.clave == canal.clave) rotular() }
+        }.start()
     }
 
     private fun menuEnlaces() {

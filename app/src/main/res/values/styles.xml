@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="fondo">#0D141E</color>
-    <color name="acento">#E2AE49</color>
+    <color name="fondo">#080E12</color>
+    <color name="acento">#FFE600</color>
 
     <style name="Tema" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/fondo</item>

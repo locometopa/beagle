@@ -196,7 +196,7 @@ class DialogoVista(private val actividad: android.app.Activity, private val titu
             setPadding((18 * dp).toInt(), (11 * dp).toInt(), (18 * dp).toInt(), (11 * dp).toInt())
             isFocusable = true; isClickable = true
             val normal = fondo(Estilo.PANEL, android.graphics.Color.TRANSPARENT, 14 * dp, (2 * dp).toInt())
-            val foco = fondo(0xFF27313F.toInt(), Estilo.ACENTO, 14 * dp, (2 * dp).toInt())
+            val foco = fondo(0xFF173039.toInt(), Estilo.ACENTO, 14 * dp, (2 * dp).toInt())
             background = android.graphics.drawable.StateListDrawable().apply { addState(intArrayOf(android.R.attr.state_focused), foco); addState(intArrayOf(), normal) }
             val m = android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT)
             m.bottomMargin = (6 * dp).toInt(); layoutParams = m
@@ -216,7 +216,7 @@ class DialogoVista(private val actividad: android.app.Activity, private val titu
             isFocusable = true; isClickable = true
             background = android.graphics.drawable.StateListDrawable().apply {
                 addState(intArrayOf(android.R.attr.state_focused), fondo(android.graphics.Color.WHITE, android.graphics.Color.WHITE, 999f, 0))
-                addState(intArrayOf(), fondo(0xFF27313F.toInt(), 0xFF27313F.toInt(), 999f, 0))
+                addState(intArrayOf(), fondo(0xFF173039.toInt(), 0xFF173039.toInt(), 999f, 0))
             }
             onFocusChangeListener = View.OnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Estilo.FONDO else Estilo.TEXTO) }
             setOnClickListener { d.dismiss() }

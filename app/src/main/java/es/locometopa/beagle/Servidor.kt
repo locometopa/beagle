@@ -273,6 +273,19 @@ object Servidor {
         return pedirJson(casa(equipo) + "/api/grabar", 20000, "POST", cuerpo).optString("id", "")
     }
 
+    /** Grabaciones en marcha (o programadas) del servidor: (id, canal). */
+    fun grabacionesActivas(equipo: String): List<Pair<String, String>> {
+        val a = pedirJson(casa(equipo) + "/api/grabaciones", 10000).optJSONArray("lista") ?: return emptyList()
+        return (0 until a.length()).mapNotNull { i ->
+            val o = a.optJSONObject(i) ?: return@mapNotNull null
+            if (o.optString("estado") != "grabando" && o.optString("estado") != "programada") return@mapNotNull null
+            o.optString("id") to o.optString("canal")
+        }
+    }
+
+    /** Para una grabación y deja guardado lo grabado hasta ahora. */
+    fun pararGrabacion(equipo: String, id: String) { pedirJson(casa(equipo) + "/api/grabaciones/$id/parar", 15000, "POST", "{}") }
+
     /** Canales de las listas apagadas del servidor que se llaman como [q]: (nombre del canal, listas donde está). */
     fun buscarApagados(equipo: String, q: String): List<Pair<String, String>> {
         val a = pedirJson(casa(equipo) + "/api/buscar-canal?q=" + URLEncoder.encode(q, "UTF-8"), 15000).optJSONArray("items") ?: return emptyList()
