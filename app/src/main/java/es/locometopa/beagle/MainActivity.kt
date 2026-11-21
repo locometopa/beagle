@@ -60,7 +60,7 @@ class MainActivity : ComponentActivity() {
 object EnPantalla { @Volatile var activa = false }
 
 private enum class Seccion(val titulo: String) {
-    Inicio("Inicio"), Canales("Canales"), Agenda("Agenda"), Videos("Vídeos"), Buscar("Buscar"), Ajustes("Ajustes")
+    Inicio("Inicio"), Canales("Canales"), Agenda("Agenda"), Videos("Vídeos"), Buscar("Buscar"), Listas("Listas"), Movil("Móvil"), Ajustes("Ajustes")
 }
 
 /** Lo que las pantallas de canales necesitan saber: los canales, si se están cargando, y cómo marcar un favorito. */
@@ -266,6 +266,8 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                     Seccion.Agenda -> PantallaAgenda(datos, conexion)
                     Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
                     Seccion.Buscar -> PantallaBuscar(datos, conexion)
+                    Seccion.Listas -> PantallaListas(conexion, servidorVacio) { recargar() }
+                    Seccion.Movil -> PantallaMovil(conexion, ajustes)
                     Seccion.Ajustes -> PantallaAjustes(conexion, ajustes, servidorVacio) { recargar() }
                 }
             }

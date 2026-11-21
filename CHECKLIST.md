@@ -75,7 +75,7 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 ## 5. Navegación y diseño
 
 - [~] Diseño: estructura de HomeTV (menú lateral fijo, filas planas, Ajustes en lista) con los colores del logo nuevo: azul noche y dorado (0.19.0)
-- [~] Menú: Inicio, Canales, Agenda, Buscar, Importar, Listas, Móvil, Ajustes; recuerda dónde estabas (recuerda la sección; faltan Importar y Móvil)
+- [~] Menú: Inicio, Canales, Agenda, Vídeos, Buscar, Listas (con importar), Móvil, Ajustes; recuerda dónde estabas (0.33.1)
 - [~] Todo manejable con el mando: foco visible, ▲▼◀▶, OK, Atrás, pulsación larga de OK
 - [~] Tipografía Outfit incluida en la app
 - [~] Vídeo de entrada (`/intro.mp4`) con ajuste, apagado de serie (es para pruebas; se quitará) (0.20.1)

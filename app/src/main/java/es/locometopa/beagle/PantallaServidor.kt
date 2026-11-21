@@ -344,7 +344,7 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
 
 
 /** Diálogo del panel del móvil: código QR, dirección, y encender/apagar/cambiar la clave. */
-private fun mostrarPanelMovil(contexto: android.content.Context, alCambiar: () -> Unit) {
+fun mostrarPanelMovil(contexto: android.content.Context, alCambiar: () -> Unit) {
     val dp = contexto.resources.displayMetrics.density
     val caja = android.widget.LinearLayout(contexto).apply { orientation = android.widget.LinearLayout.VERTICAL; setPadding((24 * dp).toInt(), (8 * dp).toInt(), (24 * dp).toInt(), 0) }
     fun pintar(): Unit {
@@ -385,4 +385,22 @@ private fun mostrarPanelMovil(contexto: android.content.Context, alCambiar: () -
         d = b.show()
     }
     botones()
+}
+
+
+/** Sección «Móvil»: el código QR para llevar el panel de control al móvil (o al ordenador). */
+@Composable
+fun PantallaMovil(conexion: Conexion, ajustes: Ajustes) {
+    val contexto = androidx.compose.ui.platform.LocalContext.current
+    var activo by remember { mutableStateOf(PanelMovil.activo) }
+    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("Controlar Beagle desde el móvil", fontSize = 28.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold)
+        Text("Escanea un código con la cámara del móvil y manejas los canales, las listas y la agenda desde el sofá. Funciona mientras Beagle esté abierta.", fontSize = 16.sp, color = Colores.Apagado)
+        FilaAjuste(if (activo) "Ver el código QR" else "Encender y ver el código QR", if (activo) "Encendido ›" else "Apagado ›", {
+            PanelMovil.preparar(contexto, conexion, ajustes)
+            if (!PanelMovil.activo) try { PanelMovil.encender() } catch (e: Exception) { }
+            activo = PanelMovil.activo
+            mostrarPanelMovil(contexto) { activo = PanelMovil.activo }
+        })
+    }
 }
