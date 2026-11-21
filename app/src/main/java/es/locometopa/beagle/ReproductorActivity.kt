@@ -300,6 +300,7 @@ class ReproductorActivity : Activity() {
         val foco = GradientDrawable().apply { setColor(Estilo.ACENTO); cornerRadius = 999f; setStroke(Estilo.dp(context, 2), Estilo.ACENTO) }
         background = android.graphics.drawable.StateListDrawable().apply { addState(intArrayOf(android.R.attr.state_focused), foco); addState(intArrayOf(), normal) }
         onFocusChangeListener = View.OnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Estilo.FONDO else Estilo.TEXTO) }
+        setSingleLine(true); maxLines = 1
         setOnClickListener { accion(); programarOcultarControles() }
         layoutParams = LinearLayout.LayoutParams(-2, -2).apply { marginEnd = Estilo.dp(context, 8) }
     }
@@ -324,8 +325,9 @@ class ReproductorActivity : Activity() {
         btnDirecto = boton("●  Directo") { volverAlDirecto() }
         fila1.addView(btnDirecto)
         btnAjustes = boton("☰  Reproducción  ›") { abrirLateral() }
+        fila1.addView(View(this), LinearLayout.LayoutParams(0, 1, 1f))
         fila1.addView(btnAjustes)
-        controles.addView(fila1, LinearLayout.LayoutParams(-2, -2))
+        controles.addView(fila1, LinearLayout.LayoutParams(-1, -2))
         panel.addView(controles)
 
         // Panel lateral con los ajustes de la emisión: una lista de filas, cada una con su valor actual
