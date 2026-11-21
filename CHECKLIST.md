@@ -84,9 +84,9 @@ Se marca aquí al terminar cada cosa (`[x]`), para saber entre sesiones por dón
 ## 6. Inicio (portada)
 
 - [~] Evento destacado: el partido en directo en tu mejor canal (cartel grande)
-- [ ] Cuadrados de eventos destacados del día (`destacados`: 0–3)
+- [~] Cuadrados de eventos destacados del día (`destacados`: 0–4) (0.33.0)
 - [~] Filas: en directo, a continuación, favoritos y una por deporte; lo que se puede ver, primero
-- [ ] Filas por categoría de canales (`filasCategorias`)
+- [~] Filas por categoría de canales (`filasCategorias`) (0.33.0)
 - [~] Inicio como HomeTV: destacado arriba y filas de tarjetas que se recorren de lado (0.18.1)
 - [~] Canales vistos hace poco (`vistos`)
 

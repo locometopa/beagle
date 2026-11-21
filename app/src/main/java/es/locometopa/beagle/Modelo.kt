@@ -38,6 +38,7 @@ class Canal(
     /** Dirección de la imagen del logo (de los datos compartidos), o vacío. */
     var logo: String = ""
     val estado: Int get() = enlaces.firstOrNull()?.orden ?: 2
+    val peers: Int get() = enlaces.maxOfOrNull { it.peers } ?: 0
 }
 
 /** Un evento de la agenda deportiva, ya cruzado por el servidor con los canales que tengo ([claves]). */

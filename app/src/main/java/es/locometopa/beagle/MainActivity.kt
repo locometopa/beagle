@@ -72,6 +72,7 @@ class Datos(
     val cambios: Int,
     val recargar: () -> Unit,
     val alFavorito: (Canal) -> Unit,
+    val ocultas: Set<String> = emptySet(),
 )
 
 @Composable
@@ -139,6 +140,38 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
             }
         }
 
+        // Equipos favoritos: sus partidos de las próximas 48 h se marcan solos con 🔔 (una vez; si lo quitas, se respeta).
+        // Y 15 min antes de cada partido (marcado o todos, según Ajustes) el servidor comprueba sus canales.
+        LaunchedEffect(servidorVacio) {
+            val automarcados = HashSet<String>()
+            val preparados = HashSet<String>()
+            while (!servidorVacio) {
+                delay(60_000)
+                val cat = catalogo ?: continue
+                val ahora = System.currentTimeMillis()
+                try {
+                    val favs = conexion.equipos().map { Modelo.sinTildes(it) }
+                    if (favs.isNotEmpty()) for (e in cat.eventos) {
+                        if (e.id in automarcados || e.aplazado || e.inicio < ahora - 3600_000L || e.inicio > ahora + 48 * 3600_000L) continue
+                        val partes = e.titulo.split(" - ").map { Modelo.sinTildes(it) }
+                        if (partes.none { p -> favs.any { f -> p.contains(f) || f.contains(p) } }) continue
+                        automarcados.add(e.id)
+                        conexion.ponerAviso(e)
+                    }
+                    if (ajustes.preComprobar != "no") {
+                        val marcados = conexion.avisos().map { it.id }.toSet()
+                        for (e in cat.eventos) {
+                            if (e.id in preparados || e.aplazado || e.inicio < ahora || e.inicio > ahora + 16 * 60_000L) continue
+                            if (ajustes.preComprobar == "marcados" && e.id !in marcados) continue
+                            preparados.add(e.id)
+                            val ids = cat.canalesDe(e).flatMap { c -> c.enlaces.filter { !it.directo }.map { it.id } }
+                            if (ids.isNotEmpty()) conexion.comprobarIds(ids)
+                        }
+                    }
+                } catch (x: Exception) { /* sin conexión: se reintenta en un minuto */ }
+            }
+        }
+
         // Panel del móvil: si estaba encendido, vuelve a encenderse al abrir la app
         LaunchedEffect(Unit) {
             PanelMovil.preparar(contextoApp, conexion, ajustes)
@@ -156,9 +189,9 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
 
         // Si lo has pedido en Ajustes, al abrir la app el servidor comprueba los canales (sin esperar).
         LaunchedEffect(servidorVacio) {
-            if (!servidorVacio && ajustes.comprobarAlAbrir) {
+            if (!servidorVacio && ajustes.comprobarAlAbrir && System.currentTimeMillis() - ajustes.ultimaComprobacion > ajustes.comprobarHoras * 3600_000L) {
                 try {
-                    if (!conexion.comprobacion().activa) conexion.comprobar(true)
+                    if (!conexion.comprobacion().activa) { conexion.comprobar(true); ajustes.ultimaComprobacion = System.currentTimeMillis() }
                 } catch (e: Exception) { /* el servidor no responde: no pasa nada */ }
             }
         }
@@ -199,7 +232,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
         AccionesCanal.alcance = alcance
         AccionesCanal.categorias = catalogo?.categorias ?: emptyList()
         AccionesCanal.recargar = { recargar() }
-        val datos = Datos(catalogo, cargando, error, servidorVacio, cambios, { recargar() }, { favorito(it) })
+        val datos = Datos(catalogo, cargando, error, servidorVacio, cambios, { recargar() }, { favorito(it) }, conexion.catOcultas())
 
         Box(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxSize().background(Colores.Fondo)) {

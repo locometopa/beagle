@@ -48,7 +48,7 @@ fun abrirReproductor(contexto: Context, canales: List<Canal>, indice: Int) {
 }
 
 /** Diálogo de una sola elección (categoría, estado, lista…): el mando sube y baja, OK elige. */
-private fun elegirDe(contexto: Context, titulo: String, opciones: List<String>, actual: Int, alElegir: (Int) -> Unit) {
+fun elegirDe(contexto: Context, titulo: String, opciones: List<String>, actual: Int, alElegir: (Int) -> Unit) {
     DialogoBeagle(contexto)
         .setTitle(titulo)
         .setSingleChoiceItems(opciones.toTypedArray(), actual) { d, i -> alElegir(i); d.dismiss() }
@@ -254,7 +254,7 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
     val cat = datos.catalogo
     var elegida by remember { mutableStateOf("Todos") }
     var filtro by remember { mutableStateOf(0) }
-    var orden by remember { mutableStateOf(0) }
+    var orden by remember { mutableStateOf(ajustes.orden) }
     var listaElegida by remember { mutableStateOf<String?>(null) }
     var versionListas by remember { mutableStateOf(0) }
     val listasServidor = remember(datos.catalogo, versionListas) { conexion.listas() }
@@ -313,7 +313,7 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
             }
         }
         val nombresFiltro = listOf("Todos", "Solo vivos", "Sin caídos", "Solo caídos")
-        val nombresOrden = listOf("Mejores primero", "A-Z")
+        val nombresOrden = listOf("Mejores primero", "Con partido primero", "Por categoría", "A-Z", "Más peers")
         val nombreLista = listaElegida?.let { id -> listasServidor.firstOrNull { it.id == id }?.nombre } ?: "Todas"
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             item {
@@ -335,7 +335,7 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
             }
             item {
                 Selector("Orden", nombresOrden[orden], orden != 0, {
-                    elegirDe(contexto, "Orden", nombresOrden, orden) { orden = it }
+                    elegirDe(contexto, "Orden", nombresOrden, orden) { orden = it; ajustes.orden = it }
                 })
             }
         }
@@ -371,7 +371,13 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
             2 -> base.filter { it.estado < 2 }
             3 -> base.filter { it.estado == 2 }
             else -> base
-        } }.let { l -> if (orden == 1) l.sortedBy { it.buscable } else l.sortedBy { it.estado } }
+        } }.let { l -> when (orden) {
+            1 -> l.sortedWith(compareBy({ if (it.ahora.isNotEmpty()) 0 else 1 }, { it.estado }))
+            2 -> l.sortedWith(compareBy({ it.categoria.isEmpty() }, { Modelo.sinTildes(it.categoria) }, { it.estado }))
+            3 -> l.sortedBy { it.buscable }
+            4 -> l.sortedWith(compareBy({ -it.peers }, { it.estado }))
+            else -> l.sortedBy { it.estado }
+        } }
         ListaCanales(filtrada, datos.cambios, datos.alFavorito, Modifier.weight(1f).fillMaxWidth())
     }
 }

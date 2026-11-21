@@ -137,6 +137,11 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         var okLargo by remember { mutableStateOf(ajustes.okLargo) }
         FilaAjuste("Mantener OK pulsado en un canal", if (okLargo == "opciones") "Abre sus opciones" else "Marca favorito", { okLargo = if (okLargo == "opciones") "favorito" else "opciones"; ajustes.okLargo = okLargo })
         Text("La tecla ≡ del mando abre siempre las opciones del canal, y OK reproduce.", fontSize = 14.sp, color = Colores.Apagado, modifier = Modifier.padding(start = 6.dp))
+        var orden by remember { mutableStateOf(ajustes.orden) }
+        val nombresOrden = listOf("Mejores primero", "Con partido primero", "Por categoría", "A-Z", "Más peers")
+        FilaAjuste("Orden de los canales", nombresOrden[orden], { orden = (orden + 1) % nombresOrden.size; ajustes.orden = orden; mensaje = true to "Se aplica al volver a Canales" })
+        var formato by remember { mutableStateOf(ajustes.formato) }
+        FilaAjuste("Formato de Ace Stream (reproductor de Beagle)", if (formato == "hls") "HLS troceado (si se congela)" else "Normal (TS)", { formato = if (formato == "hls") "ts" else "hls"; ajustes.formato = formato })
         var cuadricula by remember { mutableStateOf(ajustes.cuadricula) }
         FilaAjuste("Canales en cuadrícula", if (cuadricula) "Sí" else "No (lista)", { cuadricula = !cuadricula; ajustes.cuadricula = cuadricula; mensaje = true to "Se aplica al volver a Canales" })
         var logos by remember { mutableStateOf(ajustes.logos) }
@@ -157,6 +162,25 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
                 if (ip != null) { texto = ip; alCambiarServidor(); comprobar() }
                 else estado = Estado.NoResponde("No se ha encontrado el servidor en esta red", copia)
             }
+        })
+        TituloAjustes("Partidos")
+        var equipos by remember { mutableStateOf(conexion.equipos()) }
+        FilaAjuste("Equipos favoritos (sus partidos se marcan solos con 🔔)", if (equipos.isEmpty()) "Ninguno ›" else equipos.joinToString(", ") + " ›", {
+            fun guardar(nueva: List<String>) { alcance.launch { try { conexion.ponerEquipos(nueva); equipos = nueva } catch (e: Exception) { mensaje = false to (e.message ?: "No se ha podido") } } }
+            val ops = equipos.map { "✕ Quitar $it" } + "＋ Añadir un equipo…"
+            DialogoBeagle(contexto).setTitle("Equipos favoritos").setItems(ops.toTypedArray()) { _, i ->
+                if (i < equipos.size) guardar(equipos.filterIndexed { j, _ -> j != i })
+                else {
+                    val caja = android.widget.EditText(contexto).apply { hint = "Nombre del equipo (Getafe, Real Madrid…)"; setSingleLine(true) }
+                    DialogoBeagle(contexto).setTitle("Añadir un equipo").setView(caja)
+                        .setPositiveButton("Añadir") { _, _ -> val t = caja.text.toString().trim(); if (t.isNotEmpty() && equipos.none { it.equals(t, true) }) guardar(equipos + t) }
+                        .setNegativeButton("Cancelar", null).show()
+                }
+            }.setNegativeButton("Cerrar", null).show()
+        })
+        var pre by remember { mutableStateOf(ajustes.preComprobar) }
+        FilaAjuste("Preparar canales 15 min antes de los partidos", when (pre) { "todos" -> "Todos los partidos"; "no" -> "No"; else -> "Solo los marcados 🔔" }, {
+            pre = when (pre) { "marcados" -> "todos"; "todos" -> "no"; else -> "marcados" }; ajustes.preComprobar = pre
         })
         TituloAjustes("Copia de seguridad")
         FilaAjuste("Hacer una copia ahora en el servidor", "›", {
@@ -192,6 +216,9 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
         )
         var alAbrir by remember { mutableStateOf(ajustes.comprobarAlAbrir) }
         FilaAjuste("Comprobar los canales al abrir la app", if (alAbrir) "Sí" else "No", { alAbrir = !alAbrir; ajustes.comprobarAlAbrir = alAbrir })
+        var horas by remember { mutableStateOf(ajustes.comprobarHoras) }
+        val opcionesHoras = listOf(1, 3, 6, 12, 24, 48)
+        FilaAjuste("Recomprobar si han pasado", "$horas h", { horas = opcionesHoras[(opcionesHoras.indexOf(horas) + 1) % opcionesHoras.size]; ajustes.comprobarHoras = horas })
         TituloAjustes("Listas")
         var nOcultas by remember { mutableStateOf(conexion.catOcultas().size) }
         FilaAjuste("Ocultar categorías", if (nOcultas == 0) "Ninguna ›" else "$nOcultas ocultas ›", {
@@ -275,6 +302,18 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             }
         })
         TituloAjustes("Mantenimiento")
+        FilaAjuste("Quitar las listas apagadas y sus canales", "›", {
+            DialogoBeagle(contexto).setTitle("¿Quitar las listas apagadas?").setMessage("Se borran del servidor (para todas las teles) con sus canales. Antes se guarda una copia.")
+                .setPositiveButton("Quitar") { _, _ -> mensaje = true to "Quitando…"; alcance.launch {
+                    mensaje = try { val n = conexion.mantenimiento(false); alCambiarServidor(); true to "Hecho: $n canales quitados" } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
+                } }.setNegativeButton("Cancelar", null).show()
+        })
+        FilaAjuste("Borrar los canales caídos (salvo favoritos)", "›", {
+            DialogoBeagle(contexto).setTitle("¿Borrar los canales caídos?").setMessage("Se borran del servidor (para todas las teles) los que no funcionan. Los favoritos se quedan.")
+                .setPositiveButton("Borrar") { _, _ -> mensaje = true to "Borrando…"; alcance.launch {
+                    mensaje = try { val n = conexion.mantenimiento(true); alCambiarServidor(); true to "Hecho: $n canales borrados" } catch (e: Exception) { false to (e.message ?: "No se ha podido") }
+                } }.setNegativeButton("Cancelar", null).show()
+        })
         FilaAjuste("Limpiar la caché de la app", "›", {
             val n = try { contexto.cacheDir.deleteRecursively() } catch (e: Exception) { false }
             mensaje = true to if (n) "Caché limpia" else "No había nada que limpiar"
@@ -284,6 +323,10 @@ private fun AjustesGenerales(conexion: Conexion, ajustes: Ajustes, alCambiarServ
             else { seguro = false; conexion.empezarDeCero(); mensaje = true to "Hecho: cierra y abre la app para volver a cargarlo todo del servidor" }
         }, peligro = true)
         TituloAjustes("Pantalla")
+        var destacados by remember { mutableStateOf(ajustes.destacados) }
+        FilaAjuste("Eventos destacados del día en Inicio", if (destacados == 0) "No" else "$destacados cuadrados", { destacados = when (destacados) { 0 -> 2; 2 -> 3; 3 -> 4; else -> 0 }; ajustes.destacados = destacados })
+        var filasCat by remember { mutableStateOf(ajustes.filasCategorias) }
+        FilaAjuste("Filas por categoría en Inicio", if (filasCat) "Sí" else "No", { filasCat = !filasCat; ajustes.filasCategorias = filasCat })
         var intro by remember { mutableStateOf(ajustes.intro) }
         FilaAjuste("Vídeo de entrada al abrir la app (prueba)", if (intro) "Sí" else "No", { intro = !intro; ajustes.intro = intro })
         }

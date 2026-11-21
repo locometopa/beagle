@@ -317,6 +317,12 @@ object Servidor {
         pedirJson(casa(equipo) + "/api/comprobar", 10000, "POST", JSONObject().put("ids", org.json.JSONArray(ids)).toString())
     }
 
+    /** Mantenimiento en el servidor: quita los canales caídos o las listas apagadas (con sus canales). Devuelve cuántos. */
+    fun mantenimiento(equipo: String, caidos: Boolean): Int {
+        val r = pedirJson(casa(equipo) + "/api/mantenimiento", 60000, "POST", JSONObject().put(if (caidos) "caidos" else "apagadas", true).toString())
+        return if (caidos) r.optInt("caidos", 0) else r.optInt("canales", 0)
+    }
+
     /** Recupera una copia del servidor: sustituye los canales y listas compartidos por los de esa copia. */
     fun restaurar(equipo: String, nombre: String) {
         pedirJson(casa(equipo) + "/api/restaurar", 30000, "POST", JSONObject().put("nombre", nombre).toString())

@@ -3,7 +3,10 @@ package es.locometopa.beagle
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,6 +34,24 @@ fun ContenidoPortada(datos: Datos, cat: Catalogo, ajustes: Ajustes) {
     val favoritos = cat.canales.filter { it.favorito || datos.cambios < 0 }
 
     LazyColumn(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // Los eventos que más merecen un cuadrado hoy: en directo primero, luego los próximos con canal mío
+        if (ajustes.destacados > 0) {
+            val dest = (enDirecto + luego).take(ajustes.destacados)
+            if (dest.isNotEmpty()) item(key = "destacados") {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(dest, key = { "d-${it.id}" }) { e ->
+                        val mios = cat.canalesDe(e)
+                        Fila(onClick = { abrirEvento(contexto, cat, e) }, modifier = Modifier.width(300.dp)) {
+                            Column(Modifier.weight(1f)) {
+                                Text(if (e.vivo) "EN DIRECTO" else java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES")).format(java.util.Date(e.inicio)), fontSize = 14.sp, color = if (e.vivo) Colores.Bien else Colores.Acento, fontWeight = FontWeight.SemiBold)
+                                Text(e.titulo, fontSize = 20.sp, color = Colores.Texto, maxLines = 2)
+                                Text(mios.firstOrNull()?.titulo.orEmpty(), fontSize = 14.sp, color = Colores.Apagado, maxLines = 1)
+                            }
+                        }
+                    }
+                }
+            }
+        }
         if (enDirecto.isNotEmpty()) {
             item(key = "t-vivo") { TituloFila("En directo ahora") }
             items(enDirecto, key = { "e-${it.id}" }) { e -> FilaEvento(e, cat) { abrirEvento(contexto, cat, e) } }
@@ -42,6 +63,23 @@ fun ContenidoPortada(datos: Datos, cat: Catalogo, ajustes: Ajustes) {
         if (vistos.isNotEmpty()) {
             item(key = "t-vistos") { TituloFila("Vistos hace poco") }
             items(vistos, key = { "v-${it.clave}" }) { c -> FilaCanal(vistos, c, datos.cambios, datos.alFavorito) }
+        }
+        if (ajustes.filasCategorias) {
+            val ocultas = datos.ocultas
+            val porCat = cat.canales.filter { it.categoria.isNotEmpty() && Modelo.sinTildes(it.categoria) !in ocultas }.groupBy { it.categoria }
+            for (nombre in cat.categorias.filter { it in porCat }.take(14)) {
+                val canales = porCat.getValue(nombre).sortedBy { it.estado }.take(12)
+                item(key = "t-cat-$nombre") { TituloFila(nombre) }
+                item(key = "r-cat-$nombre") {
+                    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        items(canales.size, key = { "c-$nombre-${canales[it].clave}" }) { i ->
+                            Fila(onClick = { abrirReproductor(contexto, canales, i) }, modifier = Modifier.width(240.dp)) {
+                                Text(canales[i].titulo, fontSize = 17.sp, color = if (canales[i].estado == 2) Colores.Apagado else Colores.Texto, maxLines = 1, modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
+                }
+            }
         }
         item(key = "t-fav") { TituloFila("Favoritos") }
         if (favoritos.isEmpty()) item(key = "sin-fav") {

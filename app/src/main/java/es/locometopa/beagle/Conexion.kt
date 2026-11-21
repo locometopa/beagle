@@ -257,6 +257,22 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
         aj.put(clave, valor)
     }
 
+    suspend fun mantenimiento(caidos: Boolean): Int = withContext(Dispatchers.IO) { Servidor.mantenimiento(servidorOError(), caidos) }
+
+    /** Equipos favoritos (`equipos` compartido). */
+    fun equipos(): List<String> {
+        val a = local.leer()?.datos?.optJSONObject("ajustes")?.optJSONArray("equipos") ?: return emptyList()
+        return (0 until a.length()).map { a.optString(it, "") }.filter { it.isNotBlank() }
+    }
+
+    suspend fun ponerEquipos(lista: List<String>) = modificarDatos { datos ->
+        val aj = datos.optJSONObject("ajustes") ?: org.json.JSONObject().also { datos.put("ajustes", it) }
+        aj.put("equipos", org.json.JSONArray(lista))
+    }
+
+    /** Pone el aviso de un evento solo si no estaba (para los equipos favoritos). */
+    suspend fun ponerAviso(e: Evento) { if (avisos().none { it.id == e.id }) alternarAviso(e) }
+
     /** Categorías ocultas (`catOcultas` compartido), sin tildes ni mayúsculas para compararlas. */
     fun catOcultas(): Set<String> {
         val a = local.leer()?.datos?.optJSONObject("ajustes")?.optJSONArray("catOcultas") ?: return emptySet()

@@ -101,6 +101,35 @@ class Ajustes(private val contexto: Context) {
         get() = sp.getBoolean("comprobarAlAbrir", false)
         set(v) = sp.edit().putBoolean("comprobarAlAbrir", v).apply()
 
+    /** Orden de la lista de canales: 0 mejores, 1 con partido primero, 2 por categoría, 3 A-Z, 4 más peers. */
+    var orden: Int
+        get() = sp.getInt("orden", 0).coerceIn(0, 4)
+        set(v) = sp.edit().putInt("orden", v).apply()
+
+    /** Horas que tienen que pasar para volver a comprobar los canales al abrir la app. */
+    var comprobarHoras: Int
+        get() = sp.getInt("comprobarHoras", 12)
+        set(v) = sp.edit().putInt("comprobarHoras", v).apply()
+
+    var ultimaComprobacion: Long
+        get() = sp.getLong("ultimaComprobacion", 0)
+        set(v) = sp.edit().putLong("ultimaComprobacion", v).apply()
+
+    /** Preparar (comprobar) los canales 15 min antes de un partido: «marcados», «todos» o «no». */
+    var preComprobar: String
+        get() = sp.getString("preComprobar", "marcados") ?: "marcados"
+        set(v) = sp.edit().putString("preComprobar", v).apply()
+
+    /** Cuadrados de eventos destacados en Inicio (0 = ninguno). */
+    var destacados: Int
+        get() = sp.getInt("destacados", 0)
+        set(v) = sp.edit().putInt("destacados", v).apply()
+
+    /** Filas por categoría de canales en Inicio. */
+    var filasCategorias: Boolean
+        get() = sp.getBoolean("filasCategorias", false)
+        set(v) = sp.edit().putBoolean("filasCategorias", v).apply()
+
     var ocultarCaidos: Boolean
         get() = sp.getBoolean("ocultarCaidos", false)
         set(v) = sp.edit().putBoolean("ocultarCaidos", v).apply()
