@@ -43,7 +43,7 @@ fun ContenidoPortada(datos: Datos, cat: Catalogo, ajustes: Ajustes) {
                         val mios = cat.canalesDe(e)
                         Fila(onClick = { abrirEvento(contexto, cat, e) }, modifier = Modifier.width(300.dp)) {
                             Column(Modifier.weight(1f)) {
-                                Text(if (e.vivo) "EN DIRECTO" else java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES")).format(java.util.Date(e.inicio)), fontSize = 14.sp, color = if (e.vivo) Colores.Bien else Colores.Acento, fontWeight = FontWeight.SemiBold)
+                                Text(if (e.vivo) "EN DIRECTO · " + java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES")).format(java.util.Date(e.inicio)) else java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES")).format(java.util.Date(e.inicio)), fontSize = 14.sp, color = if (e.vivo) Colores.Bien else Colores.Acento, fontWeight = FontWeight.SemiBold)
                                 Text(e.titulo, fontSize = 20.sp, color = Colores.Texto, maxLines = 2)
                                 Text(mios.firstOrNull()?.titulo.orEmpty(), fontSize = 14.sp, color = Colores.Apagado, maxLines = 1)
                             }

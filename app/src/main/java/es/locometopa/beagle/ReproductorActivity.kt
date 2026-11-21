@@ -84,6 +84,18 @@ class ReproductorActivity : Activity() {
     private lateinit var txtEstado: TextView
     private lateinit var txtAyuda: TextView
     private lateinit var txtZap: TextView
+    // Controles al estilo de las plataformas de directo (OK una vez): pausa, volver al directo, sonido…
+    private lateinit var controles: LinearLayout
+    private lateinit var btnPausa: TextView
+    private lateinit var btnDirecto: TextView
+    private lateinit var txtDirecto: TextView
+    private lateinit var barraFondo: FrameLayout
+    private lateinit var barraRelleno: View
+    private var botonesOpcionales = emptyList<Pair<TextView, () -> Boolean>>()
+    private var controlesVisibles = false
+    private var retrasoMs = 0L       // cuánto se ha quedado atrás del directo (pausas y retrocesos)
+    private var modoPantalla = 0
+    private val ocultarControlesR = Runnable { ocultarControles() }
     private var gestos: GestureDetector? = null
 
     private val ui = Handler(Looper.getMainLooper())
@@ -258,6 +270,7 @@ class ReproductorActivity : Activity() {
         panel.addView(txtTitulo)
         panel.addView(txtEstado)
         panel.addView(txtAyuda)
+        construirControles()
         raiz.addView(panel, FrameLayout.LayoutParams(-1, -2, Gravity.BOTTOM))
 
         txtZap = texto(26f, Color.WHITE, true)
@@ -272,17 +285,187 @@ class ReproductorActivity : Activity() {
         if (!esTele) prepararTactil()
     }
 
+    // ---------------------------------------------------------------- controles (OK una vez)
+
+    private fun boton(txt: String, accion: () -> Unit): TextView = TextView(this).apply {
+        text = txt; textSize = 17f; setTextColor(Estilo.TEXTO); gravity = Gravity.CENTER; typeface = android.graphics.Typeface.DEFAULT_BOLD
+        setPadding(Estilo.dp(context, 18), Estilo.dp(context, 10), Estilo.dp(context, 18), Estilo.dp(context, 10))
+        isFocusable = true; isClickable = true
+        val normal = GradientDrawable().apply { setColor(0xCC19212D.toInt()); cornerRadius = 999f; setStroke(Estilo.dp(context, 2), Estilo.LINEA) }
+        val foco = GradientDrawable().apply { setColor(Estilo.ACENTO); cornerRadius = 999f; setStroke(Estilo.dp(context, 2), Estilo.ACENTO) }
+        background = android.graphics.drawable.StateListDrawable().apply { addState(intArrayOf(android.R.attr.state_focused), foco); addState(intArrayOf(), normal) }
+        onFocusChangeListener = View.OnFocusChangeListener { v, f -> (v as TextView).setTextColor(if (f) Estilo.FONDO else Estilo.TEXTO) }
+        setOnClickListener { accion(); programarOcultarControles() }
+        layoutParams = LinearLayout.LayoutParams(-2, -2).apply { marginEnd = Estilo.dp(context, 8) }
+    }
+
+    private fun construirControles() {
+        controles = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE; setPadding(0, Estilo.dp(this@ReproductorActivity, 12), 0, 0) }
+        // Estado respecto al directo y barra
+        val fila0 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        txtDirecto = texto(17f, Estilo.BIEN, true)
+        txtDirecto.minWidth = Estilo.dp(this, 230)
+        barraFondo = FrameLayout(this).apply { background = Estilo.redondo(0x44FFFFFF, 99f) }
+        barraRelleno = View(this).apply { background = Estilo.redondo(Estilo.ACENTO, 99f) }
+        barraFondo.addView(barraRelleno, FrameLayout.LayoutParams(0, -1))
+        fila0.addView(txtDirecto)
+        fila0.addView(barraFondo, LinearLayout.LayoutParams(0, Estilo.dp(this, 6), 1f))
+        controles.addView(fila0, LinearLayout.LayoutParams(-1, -2).apply { bottomMargin = Estilo.dp(this@ReproductorActivity, 12) })
+
+        val fila1 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        fila1.addView(boton("⏮  Canal") { ocultarControles(); zap(-1) })
+        fila1.addView(boton("⏪  10 s") { saltarEnDirecto(-10_000) })
+        btnPausa = boton("⏸  Pausa") { alternarPausa() }
+        fila1.addView(btnPausa)
+        fila1.addView(boton("10 s  ⏩") { saltarEnDirecto(10_000) })
+        fila1.addView(boton("Canal  ⏭") { ocultarControles(); zap(1) })
+        btnDirecto = boton("●  EN DIRECTO") { volverAlDirecto() }
+        fila1.addView(btnDirecto)
+        controles.addView(fila1, LinearLayout.LayoutParams(-2, -2).apply { bottomMargin = Estilo.dp(this@ReproductorActivity, 10) })
+
+        val fila2 = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val sonido = boton("♪  Sonido") { ocultarControles(); menuPistas(C.TRACK_TYPE_AUDIO) }
+        val subs = boton("▤  Subtítulos") { ocultarControles(); menuPistas(C.TRACK_TYPE_TEXT) }
+        val calidad = boton("▦  Calidad") { ocultarControles(); menuCalidad() }
+        val enlaces = boton("⇄  Enlaces") { ocultarControles(); menuEnlaces() }
+        val formatoB = boton("◧  Formato") { ocultarControles(); alternarFormato() }
+        val pantalla = boton("⛶  Pantalla") { cambiarPantalla() }
+        for (b in listOf(sonido, subs, calidad, enlaces, formatoB, pantalla)) fila2.addView(b)
+        controles.addView(fila2, LinearLayout.LayoutParams(-2, -2))
+        botonesOpcionales = listOf(
+            calidad to { player.currentTracks.groups.any { it.type == C.TRACK_TYPE_VIDEO && it.length > 1 } },
+            enlaces to { fuentes.size > 1 },
+            formatoB to { fuentes.getOrNull(fuente)?.directo == false },
+        )
+        panel.addView(controles)
+    }
+
+    private fun mostrarControles() {
+        if (!listo || esVideo()) return
+        for ((b, visible) in botonesOpcionales) b.visibility = if (visible()) View.VISIBLE else View.GONE
+        controlesVisibles = true
+        txtAyuda.visibility = View.GONE
+        controles.visibility = View.VISIBLE
+        mostrarPanel(0)
+        actualizarControles()
+        btnPausa.requestFocus()
+        programarOcultarControles()
+    }
+
+    private fun ocultarControles() {
+        ui.removeCallbacks(ocultarControlesR)
+        if (!controlesVisibles) return
+        controlesVisibles = false
+        controles.visibility = View.GONE
+        txtAyuda.visibility = View.VISIBLE
+        mostrarPanel(3000)
+    }
+
+    private fun programarOcultarControles() {
+        ui.removeCallbacks(ocultarControlesR)
+        if (controlesVisibles) ui.postDelayed(ocultarControlesR, 8000)
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (controlesVisibles && event.action == KeyEvent.ACTION_DOWN) programarOcultarControles()
+        return super.dispatchKeyEvent(event)
+    }
+
+    /** Cuánto se ha quedado atrás del directo: en HLS lo dice el reproductor; en TS se cuenta lo que ha estado en pausa. */
+    private fun retrasoActual(): Long {
+        val off = player.currentLiveOffset
+        return if (player.isCurrentMediaItemLive && off != C.TIME_UNSET) (off - 13_000L).coerceAtLeast(0L) else retrasoMs
+    }
+
+    private fun actualizarControles() {
+        if (!controlesVisibles) return
+        val retraso = retrasoActual()
+        val pausado = !player.playWhenReady
+        btnPausa.text = if (pausado) "▶  Reanudar" else "⏸  Pausa"
+        if (retraso > 4000 || pausado) {
+            txtDirecto.text = (if (pausado) "⏸  EN PAUSA" else "⏪  EN DIFERIDO") + (if (retraso > 1000) "  -" + hms(retraso) else "")
+            txtDirecto.setTextColor(Estilo.AVISO)
+        } else {
+            txtDirecto.text = "●  EN DIRECTO"
+            txtDirecto.setTextColor(Estilo.BIEN)
+        }
+        val fraccion = 1f - (retraso.coerceAtMost(60_000L) / 60_000f)
+        barraFondo.post {
+            val lp = barraRelleno.layoutParams
+            lp.width = (barraFondo.width * fraccion).toInt()
+            barraRelleno.layoutParams = lp
+        }
+    }
+
+    private fun alternarPausa() {
+        if (player.playWhenReady) player.pause() else player.play()
+        actualizarControles()
+    }
+
+    /** Atrás o adelante unos segundos: solo si el formato lo permite (HLS); en TS no hay nada detrás que ver. */
+    private fun saltarEnDirecto(ms: Long) {
+        if (!player.isCurrentMediaItemSeekable) {
+            txtDirecto.text = "TS no permite saltar: usa ◧ Formato (HLS)"
+            txtDirecto.setTextColor(Estilo.AVISO)
+            return
+        }
+        player.seekTo((player.currentPosition + ms).coerceAtLeast(0L))
+        ui.postDelayed({ actualizarControles() }, 400)
+    }
+
+    private fun volverAlDirecto() {
+        retrasoMs = 0
+        if (player.isCurrentMediaItemLive && player.isCurrentMediaItemSeekable) {
+            player.seekToDefaultPosition()
+            player.play()
+            ui.postDelayed({ actualizarControles() }, 400)
+        } else {
+            // Flujo continuo: lo único que hay es volver a pedir el canal en su punto actual
+            recolocar()
+            ocultarControles()
+        }
+    }
+
+    private fun cambiarPantalla() {
+        modoPantalla = (modoPantalla + 1) % 3
+        vista.resizeMode = when (modoPantalla) {
+            1 -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+            2 -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+            else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+        }
+        txtDirecto.text = "⛶  Pantalla: " + listOf("ajustada", "ampliada (recorta los bordes)", "estirada")[modoPantalla]
+        txtDirecto.setTextColor(Estilo.TEXTO)
+    }
+
+    /** Calidad de imagen cuando el canal trae varias (HLS adaptativo). */
+    private fun menuCalidad() {
+        val grupo = player.currentTracks.groups.filter { it.type == C.TRACK_TYPE_VIDEO && it.length > 1 }.maxByOrNull { it.length }
+        if (grupo == null) { txtEstado.text = "Este canal solo trae una calidad"; mostrarPanel(3000); return }
+        val textos = arrayListOf("Automática (la mejor que aguante)")
+        val acciones = arrayListOf<() -> Unit>({ player.trackSelectionParameters = player.trackSelectionParameters.buildUpon().clearOverridesOfType(C.TRACK_TYPE_VIDEO).build() })
+        val orden = (0 until grupo.length).sortedByDescending { grupo.getTrackFormat(it).height }
+        val actual = if (player.trackSelectionParameters.overrides.keys.any { it == grupo.mediaTrackGroup }) orden.firstOrNull { grupo.isTrackSelected(it) } else null
+        for (i in orden) {
+            val f = grupo.getTrackFormat(i)
+            val nombre = (if (f.height > 0) "${f.height}p" else "Calidad ${i + 1}") + (if (f.bitrate > 0) "  (${f.bitrate / 1000} kbps)" else "")
+            textos.add((if (actual == i) "✓ " else "    ") + nombre)
+            acciones.add { player.trackSelectionParameters = player.trackSelectionParameters.buildUpon().setOverrideForType(TrackSelectionOverride(grupo.mediaTrackGroup, i)).build() }
+        }
+        textos[0] = (if (actual == null) "✓ " else "    ") + textos[0]
+        dialogo("Calidad de imagen", textos) { acciones[it]() }.show()
+    }
+
     private fun ayuda(): String =
         if (esTele && esVideo()) "◀▶ ±10 s  ·  ▲▼ ±1 min  ·  OK pausa  ·  mantén OK: favorito  ·  ≡ opciones  ·  Atrás: salir"
-        else if (esTele) "▲▼ canal  ·  ◀▶ enlace  ·  OK información  ·  mantén OK: favorito  ·  ≡ opciones  ·  Atrás: salir"
-        else "Desliza ↑↓ canal  ·  ←→ enlace  ·  Toca: información  ·  Mantén pulsado: opciones"
+        else if (esTele) "OK: controles (pausa, directo, sonido…)  ·  ≡ opciones del canal  ·  ▲▼ canal  ·  ◀▶ enlace  ·  Atrás: salir"
+        else "Toca: controles  ·  Desliza ↑↓ canal  ·  ←→ enlace  ·  Mantén pulsado: opciones del canal"
 
     /** Móvil: gestos con el dedo en lugar del mando. */
     private fun prepararTactil() {
         gestos = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
             override fun onDown(e: MotionEvent): Boolean = true
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean {
-                if (panel.alpha > 0.5f) ui.post(ocultarPanel) else mostrarPanel(5000)
+                if (controlesVisibles) ocultarControles() else if (esVideo()) { if (panel.alpha > 0.5f) ui.post(ocultarPanel) else mostrarPanel(5000) } else mostrarControles()
                 return true
             }
             override fun onLongPress(e: MotionEvent) = opcionesCanal()
@@ -328,6 +511,8 @@ class ReproductorActivity : Activity() {
     private val relojVideo = object : Runnable {
         override fun run() {
             if (esVideo() && player.playbackState == Player.STATE_READY) txtEstado.text = posicionTexto()
+            if (!player.playWhenReady && yaSonando && !esVideo()) retrasoMs += 1000
+            if (controlesVisibles) actualizarControles()
             ui.postDelayed(this, 1000)
         }
     }
@@ -481,6 +666,7 @@ class ReproductorActivity : Activity() {
         // Cada enlace en su formato: el elegido en Ajustes, salvo los que ya se sabe que solo van en HLS
         if (e != null) formato = if (e.id in soloHls) "hls" else formatoElegido
         yaSonando = false
+        retrasoMs = 0
         porVpnActual = false
         avisoVideo = false
         avisoAudio = false
@@ -669,6 +855,7 @@ class ReproductorActivity : Activity() {
     /** Recolocar a mano (OK dos veces): reconecta con la misma sesión, por si la imagen se ha quedado congelada. */
     private fun recolocar() {
         if (player.currentMediaItem == null) return
+        retrasoMs = 0
         txtEstado.text = "Recolocando la imagen…"
         mostrarPanel(2500)
         player.stop()
@@ -700,29 +887,22 @@ class ReproductorActivity : Activity() {
     private fun dialogo(titulo: String, textos: List<String>, alElegir: (Int) -> Unit): DialogoVista =
         DialogoVista(this, titulo, textos, alElegir)
 
-    /** Mantener OK (o Menú): lo que se puede hacer con el canal que se está viendo. */
+    /** ≡ (o mantener OK): opciones del canal. Lo de la emisión (pausa, sonido, calidad…) está en los controles de OK. */
     private fun opcionesCanal() {
         if (!listo) return
+        ocultarControles()
         mostrarPanel(8000)
         val canal = canales[indice]
         val textos = ArrayList<String>()
         val acciones = ArrayList<() -> Unit>()
         textos.add(if (canal.favorito) "☆  Quitar de favoritos" else "★  Añadir a favoritos")
         acciones.add { alternarFavorito(canal) }
-        if (fuentes.size > 1) {
-            textos.add("⇄  Elegir enlace (ahora el ${fuente + 1} de ${fuentes.size})…")
-            acciones.add { menuEnlaces() }
+        textos.add("⏺  Grabar este canal en el servidor…")
+        acciones.add { menuGrabar(canal) }
+        if (canales.size > 1) {
+            textos.add("☰  Ir a otro canal de la lista…")
+            acciones.add { menuCanales() }
         }
-        if (fuentes.getOrNull(fuente)?.directo == false) {
-            textos.add("◧  Cambiar a formato " + if (formato == "hls") "TS (continuo)" else "HLS (troceado)")
-            acciones.add { alternarFormato() }
-        }
-        if (true) {
-            textos.add("⏺  Grabar este canal en el servidor…")
-            acciones.add { menuGrabar(canal) }
-        }
-        textos.add("♪  Sonido y subtítulos…")
-        acciones.add { menuSonido() }
         textos.add("⟳  Volver a cargar el canal")
         acciones.add {
             reintentos = 0
@@ -731,13 +911,11 @@ class ReproductorActivity : Activity() {
         }
         textos.add("▣  Recolocar la imagen (si se queda congelada)")
         acciones.add { recolocar() }
-        if (canales.size > 1) {
-            textos.add("☰  Ir a otro canal de la lista…")
-            acciones.add { menuCanales() }
-        }
+        textos.add("ⓘ  Datos técnicos")
+        acciones.add { txtAyuda.text = datosTecnicos(); mostrarPanel(8000) }
         textos.add("←  Salir a la lista de canales")
         acciones.add { finish() }
-        dialogo(canal.titulo, textos) { acciones[it]() }.show()
+        DialogoVista(this, "Opciones del canal", textos, { acciones[it]() }, canal.titulo).show()
     }
 
     /** Sonido y subtítulos, en dos pasos: primero qué cambiar y luego la pista. */
@@ -858,15 +1036,25 @@ class ReproductorActivity : Activity() {
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {
         if (!listo) return super.onKeyDown(keyCode, event)
         when (keyCode) {
-            KeyEvent.KEYCODE_DPAD_UP -> if (esVideo()) saltar(60_000) else zap(-1)
-            KeyEvent.KEYCODE_DPAD_DOWN -> if (esVideo()) saltar(-60_000) else zap(1)
+            KeyEvent.KEYCODE_BACK -> {
+                if (controlesVisibles) ocultarControles() else return super.onKeyDown(keyCode, event)
+            }
+            KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                if (controlesVisibles) { programarOcultarControles(); return true }
+                when (keyCode) {
+                    KeyEvent.KEYCODE_DPAD_UP -> if (esVideo()) saltar(60_000) else zap(-1)
+                    KeyEvent.KEYCODE_DPAD_DOWN -> if (esVideo()) saltar(-60_000) else zap(1)
+                    KeyEvent.KEYCODE_DPAD_LEFT -> if (esVideo()) saltar(-10_000) else cambiarFuente(-1)
+                    else -> if (esVideo()) saltar(10_000) else cambiarFuente(1)
+                }
+            }
             KeyEvent.KEYCODE_CHANNEL_UP, KeyEvent.KEYCODE_PAGE_UP, KeyEvent.KEYCODE_MEDIA_PREVIOUS -> zap(-1)
             KeyEvent.KEYCODE_CHANNEL_DOWN, KeyEvent.KEYCODE_PAGE_DOWN, KeyEvent.KEYCODE_MEDIA_NEXT -> zap(1)
-            KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> if (esVideo()) saltar(-10_000) else cambiarFuente(-1)
-            KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (esVideo()) saltar(10_000) else cambiarFuente(1)
+            KeyEvent.KEYCODE_MEDIA_REWIND -> if (esVideo()) saltar(-10_000) else { mostrarControles(); saltarEnDirecto(-10_000) }
+            KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> if (esVideo()) saltar(10_000) else { mostrarControles(); saltarEnDirecto(10_000) }
             KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE, KeyEvent.KEYCODE_MEDIA_PLAY, KeyEvent.KEYCODE_MEDIA_PAUSE, KeyEvent.KEYCODE_SPACE -> {
-                if (player.isPlaying) player.pause() else player.play()
-                mostrarPanel(3000)
+                if (player.playWhenReady) player.pause() else player.play()
+                if (controlesVisibles) actualizarControles() else mostrarPanel(3000)
             }
             KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER -> {
                 // Mantener OK pulsado: opciones (muchos mandos no tienen tecla Menú)
@@ -878,8 +1066,7 @@ class ReproductorActivity : Activity() {
                     if (player.isPlaying) player.pause() else player.play()
                     mostrarPanel(4000)
                 } else if (event.repeatCount == 0) {
-                    val t = System.currentTimeMillis()
-                    if (t - ultimoOk < 600) { ultimoOk = 0; recolocar() } else { ultimoOk = t; mostrarPanel(5000) }
+                    mostrarControles()
                 }
             }
             KeyEvent.KEYCODE_MENU, KeyEvent.KEYCODE_SETTINGS -> opcionesCanal()

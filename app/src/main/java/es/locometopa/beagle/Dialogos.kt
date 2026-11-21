@@ -162,7 +162,7 @@ private fun ContenidoDialogo(d: DialogoBeagle) {
  * El mismo diálogo para el reproductor, que está hecho con vistas de Android (no con Compose):
  * panel redondo con título, opciones que se eligen con el mando y botón de cerrar.
  */
-class DialogoVista(private val actividad: android.app.Activity, private val titulo: String, private val textos: List<String>, private val alElegir: (Int) -> Unit) {
+class DialogoVista(private val actividad: android.app.Activity, private val titulo: String, private val textos: List<String>, private val alElegir: (Int) -> Unit, private val subtitulo: String = "") {
     private var dialogo: android.app.Dialog? = null
     private var marcada = -1
 
@@ -182,6 +182,10 @@ class DialogoVista(private val actividad: android.app.Activity, private val titu
         }
         caja.addView(TextView(actividad).apply {
             text = titulo; textSize = 22f; setTextColor(Estilo.TEXTO); setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setPadding(0, 0, 0, ((if (subtitulo.isEmpty()) 12 else 2) * dp).toInt())
+        })
+        if (subtitulo.isNotEmpty()) caja.addView(TextView(actividad).apply {
+            text = subtitulo; textSize = 15f; setTextColor(Estilo.ACENTO); maxLines = 1
             setPadding(0, 0, 0, (12 * dp).toInt())
         })
         val lista = android.widget.LinearLayout(actividad).apply { orientation = android.widget.LinearLayout.VERTICAL }

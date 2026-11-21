@@ -64,7 +64,10 @@ fun FilaEvento(e: Evento, cat: Catalogo, aviso: Boolean = false, onLongClick: ((
         Box(Modifier.width(110.dp)) {
             when {
                 e.aplazado -> Text("Aplazado", fontSize = 16.sp, color = Colores.Aviso)
-                e.vivo -> Text("EN DIRECTO", fontSize = 16.sp, color = Colores.Bien)
+                e.vivo -> Column {
+                    Text("EN DIRECTO", fontSize = 16.sp, color = Colores.Bien)
+                    Text("desde las " + FORMATO_HORA.format(Date(e.inicio)), fontSize = 14.sp, color = Colores.Apagado)
+                }
                 else -> Text(FORMATO_HORA.format(Date(e.inicio)), fontSize = 22.sp, color = Colores.Texto)
             }
         }
