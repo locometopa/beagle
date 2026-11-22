@@ -123,6 +123,7 @@ class ReproductorActivity : Activity() {
     private var vueltas = 0          // vueltas completas a todos los enlaces sin conseguir que suene
     private var yaSonando = false
     private var avisoAudio = false
+    private var avisoSinAudio = false
     private var avisoVideo = false
     private var ultimoOk = 0L
     private var cargaPendiente: Runnable? = null
@@ -801,6 +802,14 @@ class ReproductorActivity : Activity() {
             val ahora = System.currentTimeMillis()
             if (player.playbackState == Player.STATE_READY) {
                 val hayVideo = player.currentTracks.groups.any { it.type == C.TRACK_TYPE_VIDEO }
+                // Imagen sin ninguna pista de sonido: el fallo es de la emisión, no de la tele. Se apunta y se prueba otro enlace
+                if (hayVideo && !avisoSinAudio && listoDesde != 0L && ahora - listoDesde > 8000 && player.currentTracks.groups.none { it.type == C.TRACK_TYPE_AUDIO }) {
+                    avisoSinAudio = true
+                    incidencia("sin audio", "la emisión no trae pista de sonido")
+                    if (fuentes.size > 1) { siguienteFuente("Este enlace no trae sonido"); return }
+                    txtEstado.text = "Este canal no manda sonido (es de la emisión, no de Beagle)."
+                    mostrarPanel(6000)
+                }
                 if (hayVideo && player.videoSize.width == 0 && listoDesde != 0L && ahora - listoDesde > 9000) {
                     listoDesde = 0L
                     incidencia("sin imagen")
@@ -904,6 +913,7 @@ class ReproductorActivity : Activity() {
         porVpnActual = false
         avisoVideo = false
         avisoAudio = false
+        avisoSinAudio = false
         ui.removeCallbacks(vigilante)
         ui.removeCallbacks(sondeo)
         rotular()
