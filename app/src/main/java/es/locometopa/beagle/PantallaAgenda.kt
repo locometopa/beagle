@@ -53,7 +53,47 @@ private fun diaTexto(ms: Long): String {
 /** Reproduce el evento en el mejor de mis canales; con ▲▼ se pasa a los otros que lo emiten. */
 fun abrirEvento(contexto: Context, cat: Catalogo, e: Evento) {
     val canales = cat.canalesDe(e)
-    if (canales.isNotEmpty()) abrirReproductor(contexto, canales, 0)
+    if (canales.isNotEmpty()) abrirReproductor(contexto, canales, 0) else buscarEnMotor(contexto, e)
+}
+
+/** Evento sin canal: a petición, se busca en el catálogo del motor de Ace Stream del servidor y se elige qué ver. */
+fun buscarEnMotor(contexto: Context, e: Evento) {
+    val con = AccionesCanal.conexion ?: return
+    val alcance = AccionesCanal.alcance ?: return
+    fun buscar(q: String) {
+        if (q.isBlank()) return
+        android.widget.Toast.makeText(contexto, "Buscando «$q» en el motor…", android.widget.Toast.LENGTH_SHORT).show()
+        alcance.launch {
+            try {
+                val r = con.buscarMotor(q.trim())
+                if (r.isEmpty()) { android.widget.Toast.makeText(contexto, "El motor no tiene nada para «$q»", android.widget.Toast.LENGTH_LONG).show(); return@launch }
+                val items = r.take(40)
+                DialogoBeagle(contexto).setTitle("«$q» en el motor (${r.size})")
+                    .setItems(items.map { x ->
+                        val disp = x[3].toDoubleOrNull()?.takeIf { it >= 0 }?.let { " · ${(if (it <= 1.0) it * 100 else it).toInt()}%" } ?: ""
+                        x[1] + (if (x[2].isNotEmpty() && x[2] != x[1]) " (${x[2]})" else "") + disp
+                    }.toTypedArray()) { _, i ->
+                        val x = items[i]
+                        val canal = Canal("motor|" + x[0], x[1].ifEmpty { e.titulo }, "", false, e.titulo, "",
+                            listOf(Enlace(x[0], x[2].ifEmpty { x[1] }, "infohash", "", "", 0)))
+                        abrirReproductor(contexto, listOf(canal), 0)
+                    }.setNegativeButton("Cancelar", null).show()
+            } catch (x: Exception) {
+                android.widget.Toast.makeText(contexto, x.message ?: "No se ha podido buscar", android.widget.Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+    fun escribir(inicial: String) {
+        val campo = android.widget.EditText(contexto).apply { setText(inicial); setSingleLine() }
+        DialogoBeagle(contexto).setTitle("Buscar en el motor").setView(campo)
+            .setPositiveButton("Buscar") { _, _ -> buscar(campo.text.toString()) }.setNegativeButton("Cancelar", null).show()
+    }
+    val opciones = ArrayList<String>(); val acciones = ArrayList<() -> Unit>()
+    for (c in e.canales.distinct().take(4)) { opciones.add("Buscar la cadena: $c"); acciones.add { buscar(c) } }
+    opciones.add("Buscar el evento: ${e.titulo}"); acciones.add { buscar(e.titulo) }
+    opciones.add("Escribir otra búsqueda…"); acciones.add { escribir(e.canales.firstOrNull() ?: e.titulo) }
+    DialogoBeagle(contexto).setTitle("«${e.titulo}» no tiene canal en tus listas")
+        .setItems(opciones.toTypedArray()) { _, i -> acciones[i]() }.setNegativeButton("Cerrar", null).show()
 }
 
 /** Un evento: hora (o «EN DIRECTO»), título, competición y cuántos de mis canales lo dan. */
@@ -109,6 +149,7 @@ fun PantallaAgenda(datos: Datos, conexion: Conexion) {
         val acciones = ArrayList<() -> Unit>()
         textos.add(if (e.id in avisos) "🔕  Quitar el aviso" else "🔔  Avisarme cuando vaya a empezar")
         acciones.add { alternarAviso(e) }
+        textos.add("🔎  Buscar canal en el motor del servidor…"); acciones.add { buscarEnMotor(contexto, e) }
         if (e.canales.isNotEmpty()) { textos.add("✎  Elegir qué canal es el de la agenda…"); acciones.add { asignarCanal(contexto, datos, conexion, e) } }
         DialogoBeagle(contexto).setTitle(e.titulo).setItems(textos.toTypedArray()) { _, i -> acciones[i]() }.setNegativeButton("Cerrar", null).show()
     }

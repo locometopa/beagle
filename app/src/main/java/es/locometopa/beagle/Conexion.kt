@@ -384,6 +384,7 @@ class Conexion(private val ajustes: Ajustes, private val local: CopiaLocal) {
     suspend fun informeIncidencias(): String = withContext(Dispatchers.IO) { Servidor.informeIncidencias(servidorOError()) }
     suspend fun borrarIncidencias() = withContext(Dispatchers.IO) { Servidor.borrarIncidencias(servidorOError()) }
     suspend fun grabar(canal: Canal, minutos: Int): String = withContext(Dispatchers.IO) { Servidor.grabar(servidorOError(), canal, minutos) }
+    suspend fun buscarMotor(q: String): List<Array<String>> = withContext(Dispatchers.IO) { Servidor.buscarMotor(servidorOError(), q) }
     suspend fun buscarApagados(q: String): List<Pair<String, String>> = withContext(Dispatchers.IO) { Servidor.buscarApagados(servidorOError(), q) }
     suspend fun copiaAhora(): String = withContext(Dispatchers.IO) { Servidor.copiaAhora(servidorOError(), ajustes.identidad()) }
     suspend fun copias(): List<String> = withContext(Dispatchers.IO) { Servidor.copias(servidorOError()) }

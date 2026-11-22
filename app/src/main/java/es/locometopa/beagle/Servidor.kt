@@ -305,6 +305,15 @@ object Servidor {
     /** Para una grabación y deja guardado lo grabado hasta ahora. */
     fun pararGrabacion(equipo: String, id: String) { pedirJson(casa(equipo) + "/api/grabaciones/$id/parar", 15000, "POST", "{}") }
 
+    /** Busca en el catálogo del motor de Ace Stream del servidor: (infohash, nombre, fuente, disponibilidad 0–1 o -1). */
+    fun buscarMotor(equipo: String, q: String): List<Array<String>> {
+        val a = pedirJson(casa(equipo) + "/api/buscar-motor?q=" + URLEncoder.encode(q, "UTF-8"), 40000).optJSONArray("items") ?: return emptyList()
+        return (0 until a.length()).mapNotNull { i ->
+            val o = a.optJSONObject(i) ?: return@mapNotNull null
+            arrayOf(o.optString("id"), o.optString("nombre"), o.optString("fuente"), if (o.isNull("disponibilidad")) "-1" else o.optString("disponibilidad"))
+        }
+    }
+
     /** Canales de las listas apagadas del servidor que se llaman como [q]: (nombre del canal, listas donde está). */
     fun buscarApagados(equipo: String, q: String): List<Pair<String, String>> {
         val a = pedirJson(casa(equipo) + "/api/buscar-canal?q=" + URLEncoder.encode(q, "UTF-8"), 15000).optJSONArray("items") ?: return emptyList()
