@@ -252,7 +252,11 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
         if (esMovil()) {
             // Móvil: el contenido a todo el ancho y el menú abajo, en una fila que se desliza
             Column(Modifier.fillMaxSize().background(Colores.Fondo)) {
-                Box(Modifier.weight(1f).fillMaxWidth()) { contenido() }
+                // Letra algo más pequeña que en la tele: en el móvil se mira de cerca
+                val d = androidx.compose.ui.platform.LocalDensity.current
+                androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(d.density, d.fontScale * 0.85f)) {
+                    Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 4.dp)) { contenido() }
+                }
                 Row(
                     Modifier.fillMaxWidth().background(Colores.Lateral).horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 8.dp),
                     verticalAlignment = Alignment.CenterVertically,

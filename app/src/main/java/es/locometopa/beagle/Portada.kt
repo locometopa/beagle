@@ -41,7 +41,7 @@ fun ContenidoPortada(datos: Datos, cat: Catalogo, ajustes: Ajustes) {
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     items(dest, key = { "d-${it.id}" }) { e ->
                         val mios = cat.canalesDe(e)
-                        Fila(onClick = { abrirEvento(contexto, cat, e) }, modifier = Modifier.width(300.dp)) {
+                        Fila(onClick = { abrirEvento(contexto, cat, e) }, modifier = Modifier.width(if (esMovil()) 250.dp else 300.dp)) {
                             Column(Modifier.weight(1f)) {
                                 Text(if (e.vivo) "EN DIRECTO · " + java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES")).format(java.util.Date(e.inicio)) else java.text.SimpleDateFormat("HH:mm", java.util.Locale("es", "ES")).format(java.util.Date(e.inicio)), fontSize = 14.sp, color = if (e.vivo) Colores.Directo else Colores.Acento, fontWeight = FontWeight.SemiBold)
                                 Text(e.titulo, fontSize = 20.sp, color = Colores.Texto, maxLines = 2)
@@ -73,7 +73,7 @@ fun ContenidoPortada(datos: Datos, cat: Catalogo, ajustes: Ajustes) {
                 item(key = "r-cat-$nombre") {
                     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         items(canales.size, key = { "c-$nombre-${canales[it].clave}" }) { i ->
-                            Fila(onClick = { abrirReproductor(contexto, canales, i) }, modifier = Modifier.width(240.dp)) {
+                            Fila(onClick = { abrirReproductor(contexto, canales, i) }, modifier = Modifier.width(if (esMovil()) 170.dp else 240.dp)) {
                                 Text(canales[i].titulo, fontSize = 17.sp, color = if (canales[i].estado == 2) Colores.Apagado else Colores.Texto, maxLines = 1, modifier = Modifier.weight(1f))
                             }
                         }

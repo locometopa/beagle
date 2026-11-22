@@ -62,7 +62,7 @@ fun PantallaListas(conexion: Conexion, servidorVacio: Boolean, alCambiar: () -> 
         }
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = if (esMovil()) 10.dp else 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("Listas", fontSize = 28.sp, color = Colores.Texto, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
         if (servidorVacio) {
             Text("Primero pon la dirección del servidor de casa en Ajustes.", fontSize = 20.sp, color = Colores.Texto)

@@ -99,7 +99,7 @@ fun Fila(
                 } else false
             }
             .combinedClickable(interactionSource = fuente, indication = null, onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 18.dp, vertical = 10.dp),
+            .padding(horizontal = if (esMovil()) 12.dp else 18.dp, vertical = if (esMovil()) 8.dp else 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         content = contenido,
     )

@@ -1,5 +1,7 @@
 package es.locometopa.beagle
 
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.Spacer
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -100,6 +102,36 @@ fun buscarEnMotor(contexto: Context, e: Evento) {
 @Composable
 fun FilaEvento(e: Evento, cat: Catalogo, aviso: Boolean = false, onLongClick: (() -> Unit)? = null, onMenu: (() -> Unit)? = null, onClick: () -> Unit) {
     val mios = cat.canalesDe(e)
+    val (txtCanal, colorCanal) = when {
+        mios.isNotEmpty() -> (if (mios.size == 1) mios[0].titulo else "${mios[0].titulo} +${mios.size - 1}") to Colores.Bien
+        e.posible -> "posible canal" to Colores.Aviso
+        e.apagada -> "en una lista apagada" to Colores.Aviso
+        e.enAbierto -> "en abierto" to Colores.Apagado
+        else -> "sin canal" to Colores.Apagado
+    }
+    if (esMovil()) {
+        // Móvil: arriba la hora y el canal, debajo el título a todo el ancho
+        Fila(onClick = onClick, modifier = Modifier.fillMaxWidth(), onLongClick = onLongClick, onMenu = onMenu) {
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    val hora = FORMATO_HORA.format(Date(e.inicio))
+                    when {
+                        e.aplazado -> Text("Aplazado", fontSize = 13.sp, color = Colores.Aviso, fontWeight = FontWeight.Bold)
+                        e.vivo -> Text("● DIRECTO · desde $hora", fontSize = 13.sp, color = Colores.Directo, fontWeight = FontWeight.Bold)
+                        else -> Text(hora, fontSize = 15.sp, color = Colores.Acento, fontWeight = FontWeight.Bold)
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Text(txtCanal, fontSize = 13.sp, color = colorCanal, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(start = 8.dp).widthIn(max = 170.dp))
+                }
+                Text((if (aviso) "🔔 " else "") + e.titulo, fontSize = 17.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold, maxLines = 2,
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp))
+                val sub = listOf(e.deporte, e.competicion).filter { it.isNotEmpty() && it != e.titulo }.joinToString(" · ")
+                if (sub.isNotEmpty()) Text(sub, fontSize = 13.sp, color = Colores.Apagado, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+            }
+        }
+        return
+    }
     Fila(onClick = onClick, modifier = Modifier.fillMaxWidth(), onLongClick = onLongClick, onMenu = onMenu) {
         Box(Modifier.width(110.dp)) {
             when {
@@ -153,7 +185,7 @@ fun PantallaAgenda(datos: Datos, conexion: Conexion) {
         if (e.canales.isNotEmpty()) { textos.add("✎  Elegir qué canal es el de la agenda…"); acciones.add { asignarCanal(contexto, datos, conexion, e) } }
         DialogoBeagle(contexto).setTitle(e.titulo).setItems(textos.toTypedArray()) { _, i -> acciones[i]() }.setNegativeButton("Cerrar", null).show()
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = if (esMovil()) 10.dp else 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text("Agenda", fontSize = 28.sp, color = Colores.Texto, fontWeight = FontWeight.SemiBold)
         if (cat == null) {
             Text(if (datos.cargando) "Cargando…" else datos.error ?: "Sin datos", fontSize = 20.sp, color = Colores.Apagado)

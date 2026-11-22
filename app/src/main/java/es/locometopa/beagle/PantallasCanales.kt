@@ -218,7 +218,7 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
 @Composable
 fun PantallaInicio(datos: Datos, ajustes: Ajustes, irAAjustes: () -> Unit) {
     val cat = datos.catalogo
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = if (esMovil()) 10.dp else 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         when {
             datos.servidorVacio -> {
                 Text("Todavía no has puesto la dirección del servidor de casa.", fontSize = 20.sp, color = Colores.Texto)
@@ -277,7 +277,7 @@ fun PantallaCanales(datos: Datos, conexion: Conexion, ajustes: Ajustes) {
             kotlinx.coroutines.delay(if (antes) 3_000 else 20_000)
         }
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = if (esMovil()) 10.dp else 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (cat == null) {
             Text(if (datos.cargando) "Cargando canales…" else datos.error ?: "Sin canales", fontSize = 20.sp, color = Colores.Apagado)
             return@Column
@@ -394,7 +394,7 @@ fun PantallaBuscar(datos: Datos, conexion: Conexion) {
         kotlinx.coroutines.delay(700)
         apagados = try { conexion.buscarApagados(texto.trim()) } catch (e: Exception) { emptyList() }
     }
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = if (esMovil()) 10.dp else 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         CampoTexto(texto, { texto = it }, "Buscar: pulsa OK y escribe un canal o un partido", Modifier.fillMaxWidth())
         val cat = datos.catalogo
         if (cat != null && texto.isNotBlank()) {

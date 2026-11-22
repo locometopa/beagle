@@ -78,7 +78,7 @@ fun PantallaVideos(conexion: Conexion, servidorVacio: Boolean) {
         if (ruta.isEmpty()) { abierta = null; listado = null; error = null } else abrir(c, ruta.dropLast(1))
     }
 
-    Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(Modifier.fillMaxSize().padding(horizontal = if (esMovil()) 10.dp else 20.dp, vertical = 12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         val c = abierta
         Text(if (c == null) "Vídeos" else c.nombre + if (ruta.isNotEmpty()) " › " + ruta.last().substringAfterLast('/') else "", fontSize = 28.sp, color = Colores.Texto, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold)
         when {
