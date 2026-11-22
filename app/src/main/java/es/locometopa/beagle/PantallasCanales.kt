@@ -67,7 +67,7 @@ fun ListaCanales(canales: List<Canal>, cambios: Int, alFavorito: (Canal) -> Unit
     val aj = remember { Ajustes(contexto.applicationContext) }
     if (aj.cuadricula) {
         androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
-            androidx.compose.foundation.lazy.grid.GridCells.Fixed(5), modifier,
+            androidx.compose.foundation.lazy.grid.GridCells.Adaptive(150.dp), modifier,
             verticalArrangement = Arrangement.spacedBy(8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             itemsCuadricula(canales, key = { it.clave }) { c -> TarjetaCanal(canales, c, cambios, alFavorito, aj) }
@@ -201,11 +201,11 @@ fun FilaCanal(lista: List<Canal>, c: Canal, cambios: Int, alFavorito: (Canal) ->
                 }
                 Text(c.categoria.ifEmpty { "Sin categoría" }, fontSize = 14.sp, color = Colores.Apagado, maxLines = 1)
             }
-            if (c.ahora.isNotEmpty()) Column(Modifier.width(220.dp).padding(end = 12.dp)) {
+            if (c.ahora.isNotEmpty() && !esMovil()) Column(Modifier.width(220.dp).padding(end = 12.dp)) {
                 Text(c.ahora, fontSize = 14.sp, color = Colores.Texto, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (c.luego.isNotEmpty()) Text("Luego: " + c.luego, fontSize = 12.sp, color = Colores.Apagado, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Text(estado, fontSize = 16.sp, color = Color(colorEstado), fontWeight = FontWeight.SemiBold, modifier = Modifier.width(130.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            Text(estado, fontSize = 16.sp, color = Color(colorEstado), fontWeight = FontWeight.SemiBold, modifier = Modifier.width(if (esMovil()) 70.dp else 130.dp), textAlign = androidx.compose.ui.text.style.TextAlign.End, maxLines = 1)
         }
         Fila(onClick = { opcionesCanal(contexto, lista, c, alFavorito) }) {
             Text("⋮", fontSize = 24.sp, color = Colores.Apagado)

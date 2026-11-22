@@ -181,9 +181,23 @@ fun Boton(texto: String, onClick: () -> Unit, principal: Boolean = false, modifi
     }
 }
 
+/** Pantalla de móvil (estrecha): menú abajo, filas apiladas y menos columnas. En la tele sigue todo como estaba. */
+@Composable
+fun esMovil(): Boolean = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp < 600
+
 /** Fila de Ajustes (`.srow`): el nombre a la izquierda y, a la derecha, el valor en verde. */
 @Composable
 fun FilaAjuste(etiqueta: String, valor: String, onClick: () -> Unit, modifier: Modifier = Modifier, peligro: Boolean = false, colorValor: Color = Colores.Acento) {
+    if (esMovil()) {
+        // En el móvil el nombre ocupa todo el ancho y el valor va debajo
+        Fila(onClick = onClick, modifier = modifier.fillMaxWidth()) {
+            Column(Modifier.weight(1f)) {
+                Text(etiqueta, fontSize = 17.sp, color = if (peligro) Colores.Mal else Colores.Texto)
+                if (valor.isNotEmpty()) Text(valor, fontSize = 15.sp, color = colorValor, fontWeight = FontWeight.SemiBold, maxLines = 2)
+            }
+        }
+        return
+    }
     Fila(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Text(etiqueta, fontSize = 19.sp, color = if (peligro) Colores.Mal else Colores.Texto, modifier = Modifier.weight(1f), maxLines = 2)
         if (valor.isNotEmpty()) Text(valor, fontSize = 18.sp, color = colorValor, fontWeight = FontWeight.SemiBold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 380.dp).padding(start = 16.dp))

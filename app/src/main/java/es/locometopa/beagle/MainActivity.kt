@@ -11,6 +11,8 @@ import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -234,7 +236,34 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
         AccionesCanal.recargar = { recargar() }
         val datos = Datos(catalogo, cargando, error, servidorVacio, cambios, { recargar() }, { favorito(it) }, conexion.catOcultas())
 
+        val contenido: @Composable () -> Unit = {
+            when (seccion) {
+                Seccion.Inicio -> PantallaInicio(datos, ajustes) { seccion = Seccion.Ajustes }
+                Seccion.Canales -> PantallaCanales(datos, conexion, ajustes)
+                Seccion.Agenda -> PantallaAgenda(datos, conexion)
+                Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
+                Seccion.Buscar -> PantallaBuscar(datos, conexion)
+                Seccion.Listas -> PantallaListas(conexion, servidorVacio) { recargar() }
+                Seccion.Movil -> PantallaMovil(conexion, ajustes)
+                Seccion.Ajustes -> PantallaAjustes(conexion, ajustes, servidorVacio) { recargar() }
+            }
+        }
         Box(Modifier.fillMaxSize()) {
+        if (esMovil()) {
+            // Móvil: el contenido a todo el ancho y el menú abajo, en una fila que se desliza
+            Column(Modifier.fillMaxSize().background(Colores.Fondo)) {
+                Box(Modifier.weight(1f).fillMaxWidth()) { contenido() }
+                Row(
+                    Modifier.fillMaxWidth().background(Colores.Lateral).horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    for (s in Seccion.entries) {
+                        ItemMenu(s.titulo, s == seccion, { seccion = s; ajustes.ultimaSeccion = s.name })
+                        Spacer(Modifier.width(4.dp))
+                    }
+                }
+            }
+        } else
         Row(Modifier.fillMaxSize().background(Colores.Fondo)) {
             // Menú lateral, como el de HomeTV: fondo más oscuro, marca, píldoras y el estado abajo
             Column(Modifier.width(184.dp).fillMaxHeight().background(Colores.Lateral).padding(horizontal = 14.dp, vertical = 20.dp)) {
@@ -259,18 +288,7 @@ fun BeagleApp(conexion: Conexion, ajustes: Ajustes) {
                 PildoraEstado(motor.first, motor.second, Modifier.padding(start = 12.dp))
                 vpn?.let { PildoraEstado(it.first, it.second, Modifier.padding(start = 12.dp)) }
             }
-            Box(Modifier.weight(1f).fillMaxHeight()) {
-                when (seccion) {
-                    Seccion.Inicio -> PantallaInicio(datos, ajustes) { seccion = Seccion.Ajustes }
-                    Seccion.Canales -> PantallaCanales(datos, conexion, ajustes)
-                    Seccion.Agenda -> PantallaAgenda(datos, conexion)
-                    Seccion.Videos -> PantallaVideos(conexion, servidorVacio)
-                    Seccion.Buscar -> PantallaBuscar(datos, conexion)
-                    Seccion.Listas -> PantallaListas(conexion, servidorVacio) { recargar() }
-                    Seccion.Movil -> PantallaMovil(conexion, ajustes)
-                    Seccion.Ajustes -> PantallaAjustes(conexion, ajustes, servidorVacio) { recargar() }
-                }
-            }
+            Box(Modifier.weight(1f).fillMaxHeight()) { contenido() }
         }
             // Vídeo de entrada (solo si está activado en Ajustes y el servidor lo tiene): se salta con cualquier tecla
             var verIntro by remember { mutableStateOf(ajustes.intro && !servidorVacio) }
