@@ -99,6 +99,9 @@ class ReproductorActivity : Activity() {
     private var anchoLateral = 0
     private var lateralAbierto = false
     private lateinit var btnAjustes: TextView
+    private var aacT = 0L                       // vídeos con el sonido convertido: desde dónde arranca la emisión (ms)
+    private var aacPend = -1L                   // destino de un salto que aún no se ha pedido al servidor
+    private val aacSaltoR = Runnable { aplicarSaltoAac() }
     private var botonesVideo = emptyList<View>()   // saltos de 1 y 10 minutos: solo en vídeos
     private var controlesVisibles = false
     private var retrasoMs = 0L       // cuánto se ha quedado atrás del directo (pausas y retrocesos)
@@ -205,7 +208,12 @@ class ReproductorActivity : Activity() {
             if (estado == Player.STATE_READY) {
                 reintentos = 0
                 vueltas = 0
-                if (!yaSonando) { sonandoDesde = System.currentTimeMillis(); puntoOk = false }
+                if (!yaSonando) {
+                    sonandoDesde = System.currentTimeMillis(); puntoOk = false
+                    // Los vídeos arrancan con la barra a la vista: un solo modo de manejarlos
+                    if (esVideo() && !controlesVisibles) ui.post { if (esVideo() && !controlesVisibles) mostrarControles() }
+                }
+                if (esVideo() && !enAac() && player.duration != C.TIME_UNSET) fuentes.getOrNull(fuente)?.let { ajustes.ponerDuracion(it.url, player.duration) }
                 yaSonando = true
                 if (listoDesde == 0L) listoDesde = System.currentTimeMillis()
                 ui.removeCallbacks(vigilante)
@@ -490,11 +498,11 @@ class ReproductorActivity : Activity() {
     private fun actualizarControles() {
         if (!controlesVisibles) return
         if (esVideo()) {
-            val dur = player.duration
+            val dur = durVideo()
             btnPausa.text = if (!player.playWhenReady) "▶  Reanudar" else "❚❚  Pausa"
             txtDirecto.text = (if (!player.playWhenReady) "❚❚  " else "") + posicionTexto().substringBefore("   ⏸")
             txtDirecto.setTextColor(Estilo.TEXTO)
-            val f = if (dur > 0 && dur != C.TIME_UNSET) (player.currentPosition.toFloat() / dur).coerceIn(0f, 1f) else 0f
+            val f = if (dur > 0 && dur != C.TIME_UNSET) (posVideo().toFloat() / dur).coerceIn(0f, 1f) else 0f
             barraFondo.post { val lp = barraRelleno.layoutParams; lp.width = (barraFondo.width * f).toInt(); barraRelleno.layoutParams = lp }
             return
         }
@@ -525,9 +533,7 @@ class ReproductorActivity : Activity() {
     /** Saltos de los botones: en un vídeo recorren el archivo; en un directo, lo que permita la emisión. */
     private fun saltoControl(ms: Long) {
         if (!esVideo()) { saltarEnDirecto(ms); return }
-        val dur = player.duration
-        val nueva = (player.currentPosition + ms).coerceAtLeast(0L)
-        player.seekTo(if (dur != C.TIME_UNSET) nueva.coerceAtMost((dur - 1000).coerceAtLeast(0L)) else nueva)
+        irAVideo(posVideo() + ms)
         actualizarControles()
     }
 
@@ -618,10 +624,30 @@ class ReproductorActivity : Activity() {
     /** Los vídeos de las carpetas del servidor (y las grabaciones) se ven como un vídeo normal: con pausa y saltos. */
     private fun esVideo(): Boolean = canales.getOrNull(indice)?.clave?.startsWith("carpeta|") == true
 
+    /** Vídeo con el sonido convertido por el servidor: la emisión no se puede adelantar, se pide de nuevo desde otro instante. */
+    private fun enAac(): Boolean = esVideo() && fuentes.getOrNull(fuente)?.url?.let { it in soloAac } == true
+
+    private fun posVideo(): Long = if (aacPend >= 0) aacPend else if (enAac()) aacT + player.currentPosition else player.currentPosition
+    private fun durVideo(): Long = if (enAac()) ajustes.duracion(fuentes[fuente].url).let { if (it > 0) it else C.TIME_UNSET } else player.duration
+
+    private fun irAVideo(destino: Long) {
+        val dur = durVideo()
+        val d = destino.coerceAtLeast(0L).let { if (dur != C.TIME_UNSET) it.coerceAtMost((dur - 1000).coerceAtLeast(0L)) else it }
+        if (!enAac()) { player.seekTo(d); return }
+        aacPend = d
+        ui.removeCallbacks(aacSaltoR)
+        ui.postDelayed(aacSaltoR, 800)   // si se sigue saltando, se espera al último destino
+    }
+
+    private fun aplicarSaltoAac() {
+        if (aacPend < 0) return
+        aacT = aacPend; aacPend = -1
+        reintentos = 0
+        cargar(nuevo = false)
+    }
+
     private fun saltar(ms: Long) {
-        val dur = player.duration
-        val nueva = (player.currentPosition + ms).coerceAtLeast(0L)
-        player.seekTo(if (dur != C.TIME_UNSET) nueva.coerceAtMost(dur) else nueva)
+        irAVideo(posVideo() + ms)
         mostrarPanel(4000)
         txtEstado.text = posicionTexto()
     }
@@ -632,8 +658,8 @@ class ReproductorActivity : Activity() {
     }
 
     private fun posicionTexto(): String {
-        val dur = player.duration
-        return hms(player.currentPosition) + (if (dur != C.TIME_UNSET) " / " + hms(dur) else "") + (if (!player.isPlaying) "   ⏸ en pausa" else "")
+        val dur = durVideo()
+        return hms(posVideo()) + (if (dur != C.TIME_UNSET) " / " + hms(dur) else "") + (if (!player.isPlaying && aacPend < 0) "   ⏸ en pausa" else "")
     }
 
     /** Cada segundo, en los vídeos, pone la posición en el panel. */
@@ -771,7 +797,7 @@ class ReproductorActivity : Activity() {
     private val guardia = object : Runnable {
         override fun run() {
             ui.postDelayed(this, 2000)
-            if (!yaSonando || !player.playWhenReady || controlesVisibles && retrasoMs > 0) return
+            if (esVideo() || !yaSonando || !player.playWhenReady || controlesVisibles && retrasoMs > 0) return
             val ahora = System.currentTimeMillis()
             if (player.playbackState == Player.STATE_READY) {
                 val hayVideo = player.currentTracks.groups.any { it.type == C.TRACK_TYPE_VIDEO }
@@ -867,6 +893,7 @@ class ReproductorActivity : Activity() {
             vueltas = 0
             fuentes = ordenados(canales[indice].enlaces)
             fuente = 0
+            aacT = 0L; aacPend = -1L; ui.removeCallbacks(aacSaltoR)
             if (!esVideo()) comprobarGrabacion(canales[indice])
         }
         val e = fuentes.getOrNull(fuente)
@@ -900,9 +927,12 @@ class ReproductorActivity : Activity() {
                 // Si la VPN del servidor tiene pasarela y el ajuste lo permite, la emisión se pide por ella
                 var url = e.url
                 var porVpn = false
+                val video = esVideo()
+                // Película con audio que la tele no entiende (AC3, DTS…): el servidor convierte solo el sonido
+                if (video && e.url in soloAac && "/carpetas/" in url) url = url.replace("/carpetas/", "/carpetas-aac/") + (if (aacT > 0) "?t=${aacT / 1000}" else "")
                 try {
                     val quiere = CopiaLocal(applicationContext).leer()?.datos?.optJSONObject("ajustes")?.optBoolean("tvPorVpn", true) ?: true
-                    if (quiere && equipo.isNotEmpty() && Regex("(?i)https?://.*").matches(url) && e.id !in sinPasarela && Servidor.salud(equipo, 2500).pasarela) { url = Servidor.porPasarela(equipo, url); porVpn = true }
+                    if (!video && quiere && equipo.isNotEmpty() && Regex("(?i)https?://.*").matches(url) && e.id !in sinPasarela && Servidor.salud(equipo, 2500).pasarela) { url = Servidor.porPasarela(equipo, url); porVpn = true }
                 } catch (ex: Exception) { /* sin pasarela: directa */ }
                 ui.post {
                     if (isFinishing || isDestroyed || gen != generacion) return@post
@@ -1035,7 +1065,16 @@ class ReproductorActivity : Activity() {
         if (avisoAudio) return
         avisoAudio = true
         val tipo = (mime ?: "desconocido").replace("audio/", "").uppercase(Locale.ROOT)
-        if (!e.directo && e.id !in soloAac && e.id !in aacFallido) {
+        if (esVideo() && e.url !in soloAac) {
+            soloAac.add(e.url)
+            ajustes.soloAac = soloAac
+            aacT = player.currentPosition
+            reintentos = 0
+            cargar(nuevo = false)
+            txtEstado.text = "La tele no reproduce este sonido ($tipo): convirtiéndolo en el servidor…"
+        } else if (esVideo()) {
+            txtEstado.text = "Se ve, pero el sonido ($tipo) no se oye ni convertido. ¿Está actualizado el servidor?"
+        } else if (!e.directo && e.id !in soloAac && e.id !in aacFallido) {
             soloAac.add(e.id)
             ajustes.soloAac = soloAac
             reintentos = 0
@@ -1114,6 +1153,19 @@ class ReproductorActivity : Activity() {
         if (canales.size > 1) {
             textos.add("☰  Ir a otro canal de la lista…")
             acciones.add { menuCanales() }
+        }
+        if (esVideo()) {
+            val conv = enAac()
+            textos.add(if (conv) "♪  Volver al sonido original" else "♪  ¿No se oye? Convertir el sonido en el servidor")
+            acciones.add {
+                val e = fuentes[fuente]
+                aacT = posVideo(); aacPend = -1L
+                if (conv) soloAac.remove(e.url) else soloAac.add(e.url)
+                ajustes.soloAac = soloAac
+                avisoAudio = conv
+                reintentos = 0
+                cargar(nuevo = false)
+            }
         }
         textos.add("⟳  Volver a cargar el canal")
         acciones.add {

@@ -19,6 +19,10 @@ class Ajustes(private val contexto: Context) {
         get() = if (sp.getString("formato", "hls") == "ts") "ts" else "hls"
         set(v) = sp.edit().putString("formato", v).apply()
 
+    /** Duración de las películas que se ven con el sonido convertido (el servidor no la da en ese modo). */
+    fun duracion(clave: String): Long = sp.getLong("d_" + clave.hashCode(), 0L)
+    fun ponerDuracion(clave: String, ms: Long) { sp.edit().putLong("d_" + clave.hashCode(), ms).apply() }
+
     /** Fiabilidad de cada enlace (sube si aguanta, baja si falla): los mejores se prueban primero. */
     fun puntos(id: String): Int = sp.getInt("p_$id", 0)
     fun puntuar(id: String, delta: Int) { sp.edit().putInt("p_$id", (puntos(id) + delta).coerceIn(-6, 6)).apply() }
