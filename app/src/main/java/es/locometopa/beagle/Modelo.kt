@@ -64,7 +64,7 @@ class Catalogo(val canales: List<Canal>, val categorias: List<String>, val event
     private val porClave: Map<String, Canal> = canales.associateBy { it.clave }
 
     /** Mis canales que emiten el evento, con el mejor primero. */
-    fun canalesDe(e: Evento): List<Canal> = e.claves.mapNotNull { porClave[it] }.sortedBy { it.estado }
+    fun canalesDe(e: Evento): List<Canal> = e.claves.mapNotNull { porClave[it] }.sortedBy { if (it.estado == 2) 1 else 0 }  // se respeta el orden del servidor; solo los caídos al final
 }
 
 object Modelo {
